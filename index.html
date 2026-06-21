@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flowseeker Pro — CVForge</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <style>
+    html,body{margin:0;padding:0;height:100%;background:#0b0d12;color:#e6e8ee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+    #root{min-height:100vh}
+    .as{display:flex;flex-direction:column;height:100vh}
+    .tb{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#11141a;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+    .tb h1{font-size:14px;font-weight:700;margin:0}
+    .bd{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(34,197,94,.15);color:#22c55e;font-weight:600}
+    .bd.off{background:rgba(239,68,68,.15);color:#ef4444}
+    .mn{display:flex;flex:1;overflow:hidden}
+    .sb{width:240px;flex-shrink:0;background:#0d0f14;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:12px;box-sizing:border-box}
+    .ct{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .ti{width:100%;background:#161a22;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e6e8ee;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;margin-bottom:8px}
+    .ti:focus{border-color:#3b82f6}
+    .chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+    .chip{font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(59,130,246,.12);color:#60a5fa;cursor:pointer;border:1px solid rgba(59,130,246,.2)}
+    .chip.on{background:#3b82f6;color:#fff;border-color:#3b82f6}
+    .fs{margin-top:14px}
+    .fl{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#7a8599;margin-bottom:6px;font-weight:600}
+    .fr{display:flex;gap:6px;margin-bottom:6px}
+    .fs2,.fi{flex:1;background:#161a22;border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#e6e8ee;font-size:12px;padding:6px 8px;outline:none}
+    .cw{flex:1;min-height:200px;padding:12px}
+    .ft{height:150px;flex-shrink:0;background:#0d0f14;border-top:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:8px 12px}
+    .fth{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#7a8599;margin-bottom:6px;font-weight:600;display:flex;justify-content:space-between}
+    .fr2{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.02)}
+    .ft2{color:#7a8599;min-width:50px}
+    .ft3{color:#60a5fa;font-weight:600;min-width:36px}
+    .flt{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600}
+    .flt.sweep{background:rgba(239,68,68,.15);color:#ef4444}
+    .flt.block{background:rgba(234,179,8,.15);color:#eab308}
+    .flt.unusual{background:rgba(168,85,247,.15);color:#a855f7}
+    .flt.regular{background:rgba(120,120,120,.15);color:#888}
+    .fd{color:#b0b8c4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+    .fp{color:#22c55e;font-weight:600;text-align:right;min-width:60px}
+    .sb2{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#0d0f14;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#7a8599;flex-shrink:0}
+    .sd{width:6px;height:6px;border-radius:50%;background:#22c55e}
+    .sd.ld{background:#eab308;animation:p 1s infinite}
+    .sd.er{background:#ef4444}
+    @keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
+    .em{display:flex;align-items:center;justify-content:center;min-height:80px;opacity:.4;font-size:13px}
+    .lg{display:flex;gap:8px;padding:8px 12px;font-size:9px;color:#7a8599;border-top:1px solid rgba(255,255,255,.04)}
+    .lg span{display:flex;align-items:center;gap:3px}
+  </style>
+</head>
+<body>
+<div id="root"><div class="em">Connecting to cvserver...</div></div>
+<script src="./cv-bootstrap.js"></script>
+<script>
+(function(){
+'use strict';
+var T=['SPY','QQQ','IWM','DIA','TLT','AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL'];
+var tk='SPY',cd=null,fd=[],ld=false,er=null;
+var R=document.getElementById('root');
+
+// Chain data format: [expiration, strike, type, iv, delta, gamma, theta, vega, bid, ask, midpoint, oi, volume, underlying]
+var IDX = {EXP:0, STRIKE:1, TYPE:2, IV:3, DELTA:4, GAMMA:5, THETA:6, VEGA:7, BID:8, ASK:9, MID:10, OI:11, VOL:12, SPOT:13};
+
+function fmt(v){return v==null?'—':(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0))}
+function fmtPct(v){return v==null?'—':(v*100).toFixed(1)+'%'}
+
+function rend(){
+  R.innerHTML='<div class="as"><div class="tb"><h1>⚡ FLOWSEEKER PRO</h1>'+
+  '<span class="bd '+(er?'off':'')+'">'+(er?'ERROR':'LIVE')+'</span>'+
+  '<span style="margin-left:auto;font-size:11px;color:#7a8599">'+tk+' • cvserver</span></div>'+
+  '<div class="mn"><div class="sb">'+
+  '<input class="ti" id="ti" value="'+tk+'" placeholder="Ticker (e.g. SPY)"/>'+
+  '<div class="chips" id="chips"></div>'+
+  '<div class="fs"><div class="fl">Chain Filters</div><div class="fr">'+
+  '<select class="fs2" id="tf"><option value="all">All Types</option><option value="call">Calls</option><option value="put">Puts</option></select>'+
+  '<input class="fi" id="mp" type="number" value="0" placeholder="Min OI"/></div></div>'+
+  '<div class="fs"><div class="fl">Expiry</div><select class="fs2" id="ef" style="width:100%"><option value="0">First</option></select></div>'+
+  '</div>'+
+  '<div class="ct"><div class="cw">'+
+  '<div style="font-size:12px;font-weight:600;color:#b0b8c4;padding:0 0 8px" id="ctitle">Loading chain...</div>'+
+  '<div id="cc" style="height:calc(100% - 24px);"></div>'+
+  '<div class="lg"><span>● Call OI</span><span>● Put OI</span><span>— Delta</span><span>— Spot</span></div></div>'+
+  '<div class="ft"><div class="fth"><span>Live Flow</span><span id="fc">0 prints</span></div>'+
+  '<div id="ft"><div class="em">Waiting for flow data...</div></div></div></div></div>'+
+  '<div class="sb2"><span class="sd '+(ld?'ld':(er?'er':''))+'"></span>'+
+  '<span>'+(ld?'Fetching...':(er||'Connected to cvserver'))+'</span>'+
+  '<span style="margin-left:auto" id="lupdate"></span></div></div>';
+  bind(); renderChips(); loadData();
+}
+
+function renderChips(){
+  var c=document.getElementById('chips');
+  if(c) c.innerHTML=T.map(function(t){return '<span class="chip '+(t===tk?'on':'')+'" data-t="'+t+'">'+t+'</span>';}).join('');
+}
+
+function bind(){
+  var i=document.getElementById('ti');
+  if(i) i.addEventListener('keydown',function(e){if(e.key==='Enter'){tk=this.value.trim().toUpperCase();if(tk){loadData();}}});
+  document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){tk=this.dataset.t;loadData();});});
+  var tf=document.getElementById('tf'); if(tf) tf.addEventListener('change',function(){renderChart();});
+  var ef=document.getElementById('ef'); if(ef) ef.addEventListener('change',function(){renderChart();});
+  var mp=document.getElementById('mp'); if(mp) mp.addEventListener('change',function(){renderChart();});
+}
+
+async function loadData(){
+  ld=true; er=null; rend();
+  try{
+    // Fetch chain with all fields
+    var d = await window.cvApi.chain(tk, [
+      'expiration_date','strike_price','contract_type','implied_volatility',
+      'delta','gamma','theta','vega','bid','ask','midpoint',
+      'open_interest','day_volume','underlying_price'
+    ]);
+    cd = d;
+    // Populate expiry dropdown
+    var ef=document.getElementById('ef');
+    if(ef && d.chain){
+      ef.innerHTML = d.chain.map(function(c,i){return '<option value="'+i+'">'+c.expiration+'</option>';}).join('');
+    }
+    // Fetch flow
+    try{
+      var sf = await window.cvApi.screen({
+        columns:['ticker','strike_price','expiration_date','contract_type','trade_size','trade_price','open_interest','implied_volatility','delta','gamma','theta','vega','bid','ask','trade_conditions'],
+        filters:[{field:'underlying_ticker',op:'eq',value:tk}],
+        sort:[{field:'trade_price',direction:'desc'}],
+        limit:50
+      });
+      fd = (sf.rows||[]).map(function(r){
+        return {ticker:r[0],strike:r[1],exp:r[2],type:r[3],size:r[4],price:r[5],oi:r[6],iv:r[7],delta:r[8],gamma:r[9],theta:r[10],vega:r[11],bid:r[12],ask:r[13],conditions:r[14]};
+      });
+    }catch(e){console.log('Flow fetch failed (non-critical):',e);}
+    
+    document.getElementById('lupdate').textContent = new Date().toLocaleTimeString();
+    renderChart();
+    renderTape();
+  }catch(e){
+    er = e.message || String(e);
+    console.error('cvApi error:', e);
+  }finally{
+    ld=false; rend();
+  }
+}
+
+function renderChart(){
+  var el=document.getElementById('cc'); if(!el||!cd||!cd.chain||!cd.chain.length){
+    if(el) el.innerHTML='<div class="em">No chain data available</div>';
+    return;
+  }
+  var ef=document.getElementById('ef');
+  var expIdx = ef ? parseInt(ef.value) || 0 : 0;
+  var exp = cd.chain[expIdx]; if(!exp) return;
+  
+  var strikes = exp.strikes.map(function(s){return s[IDX.STRIKE];});
+  var callOI = exp.strikes.map(function(s){return s[IDX.OI]||0;});
+  var putOI = exp.strikes.map(function(s){return s[IDX.PUT_OI]||0;});
+  // For put OI, we need to look at put_vals
+  if(exp.strikes[0].length > 2 && exp.strikes[0][2]){
+    // New format: strikes = [[strike, [call_vals], [put_vals]]]
+    callOI = exp.strikes.map(function(s){return (s[1]||[])[IDX.OI]||0;});
+    putOI = exp.strikes.map(function(s){return (s[2]||[])[IDX.OI]||0;});
+  }
+  var delta = exp.strikes.map(function(s){return (s[1]||[])[IDX.DELTA]||0;});
+  var spot = exp.strikes[0] ? (exp.strikes[0][1]||[])[IDX.SPOT]||0 : 0;
+  
+  // Filter
+  var tf=document.getElementById('tf');
+  var minOI = parseFloat(document.getElementById('mp')?.value||0);
+  
+  var maxOI = Math.max.apply(null, callOI.concat(putOI)) || 1;
+  if(maxOI === 0) {el.innerHTML='<div class="em">All OI is 0</div>'; return;}
+  
+  var traces = [
+    {y:strikes,x:callOI.map(function(v){return -(v/maxOI)*100;}),type:'bar',orientation:'h',name:'Call OI',marker:{color:'rgba(52,211,153,0.7)'},customdata:callOI,hovertemplate:'Call OI: %{customdata}<extra></extra>'},
+    {y:strikes,x:putOI.map(function(v){return (v/maxOI)*100;}),type:'bar',orientation:'h',name:'Put OI',marker:{color:'rgba(244,63,94,0.7)'},customdata:putOI,hovertemplate:'Put OI: %{customdata}<extra></extra>'},
+    {y:strikes,x:delta.map(function(v){return (v-0.5)*200;}),type:'scatter',mode:'lines',name:'Delta',line:{color:'#fbbf24',width:2}},
+  ];
+  
+  if(spot>0){
+    traces.push({y:strikes,x:strikes.map(function(){return 0;}),type:'scatter',mode:'markers',name:'Spot '+spot.toFixed(0),marker:{color:'#38bdf8',size:8,symbol:'line-ns'}});
+  }
+  
+  var layout = {
+    title:{text:'OI by Strike — '+cd.symbol+' ('+exp.expiration+')',font:{color:'#94a3b8',size:12}},
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',barmode:'overlay',
+    margin:{l:50,r:20,t:30,b:30},
+    xaxis:{title:'OI (normalized)',color:'#64748b',zeroline:true,zerolinecolor:'#475569',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
+    yaxis:{title:'Strike',color:'#64748b',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
+    legend:{orientation:'h',y:1.1,font:{size:9}},
+    hovermode:'x unified',
+    displayModeBar:false,
+    shapes:[{type:'line',x0:0,x1:0,y0:0,y1:1,yref:'paper',line:{color:'rgba(255,255,255,.15)',width:1,dash:'dot'}}],
+  };
+  
+  Plotly.newPlot(el, traces, layout, {responsive:true, displayModeBar:false});
+  document.getElementById('ctitle').textContent = 'OI by Strike — '+cd.symbol+' ('+exp.expiration+') — '+strikes.length+' strikes';
+}
+
+function renderTape(){
+  var el=document.getElementById('ft'); if(!el) return;
+  document.getElementById('fc').textContent = fd.length;
+  if(!fd.length){el.innerHTML='<div class="em">No flow data</div>';return;}
+  el.innerHTML=fd.slice(0,30).map(function(p){
+    var cls=p.conditions||'regular';
+    if(p.size>=100)cls='sweep';
+    if(p.size>=500)cls='block';
+    if((p.oi/Math.max(p.size,1))>2)cls='unusual';
+    var t=p.strike?(p.strike%1===0?p.strike.toFixed(0):p.strike.toFixed(1)):'—';
+    return '<div class="fr2"><span class="ft2">'+(p.exp||'').slice(5)+'</span>'+
+    '<span class="ft3">'+(p.type||'')+'</span>'+
+    '<span class="flt '+cls+'">'+cls.toUpperCase()+'</span>'+
+    '<span class="fd">'+t+' @ '+(p.price?'$'+p.price.toFixed(0):'—')+' ('+(p.size||0)+')</span>'+
+    '<span class="fp">$'+fmt(p.price*(p.size||100)/100)+'</span></div>';
+  }).join('');
+}
+
+// Init
+rend();
+setInterval(loadData,15000);
+})();
+</script>
+</body>
+</html>
