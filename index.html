@@ -3,19 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Flowseeker Pro — CVForge</title>
+  <title>GitHub Flow · Confluence Decoder</title>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
   <style>
     html,body{margin:0;padding:0;height:100%;background:#0b0d12;color:#e6e8ee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
     #root{min-height:100vh}
     .as{display:flex;flex-direction:column;height:100vh}
-    .tb{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#11141a;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
-    .tb h1{font-size:14px;font-weight:700;margin:0}
-    .bd{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(34,197,94,.15);color:#22c55e;font-weight:600}
+    .tb{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#11141a;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+    .tb h1{font-size:14px;font-weight:800;margin:0;letter-spacing:.3px}
+    .tb h1 small{color:#7a8599;font-weight:600;font-size:11px}
+    .bd{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(34,197,94,.15);color:#22c55e;font-weight:700;letter-spacing:.5px}
     .bd.off{background:rgba(239,68,68,.15);color:#ef4444}
+    .tabs{display:flex;gap:2px;padding:0 12px;background:#0d0f14;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+    .tab{padding:10px 18px;font-size:12px;font-weight:700;color:#7a8599;cursor:pointer;border-bottom:2px solid transparent;user-select:none}
+    .tab.on{color:#e6e8ee;border-bottom-color:#3b82f6}
+    .tab:hover{color:#b0b8c4}
     .mn{display:flex;flex:1;overflow:hidden}
-    .sb{width:240px;flex-shrink:0;background:#0d0f14;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:12px;box-sizing:border-box}
-    .ct{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .sb{width:230px;flex-shrink:0;background:#0d0f14;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:12px;box-sizing:border-box}
+    .ct{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
     .ti{width:100%;background:#161a22;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e6e8ee;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;margin-bottom:8px}
     .ti:focus{border-color:#3b82f6}
     .chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
@@ -24,198 +29,940 @@
     .fs{margin-top:14px}
     .fl{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#7a8599;margin-bottom:6px;font-weight:600}
     .fr{display:flex;gap:6px;margin-bottom:6px}
-    .fs2,.fi{flex:1;background:#161a22;border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#e6e8ee;font-size:12px;padding:6px 8px;outline:none}
-    .cw{flex:1;min-height:200px;padding:12px}
+    .fs2,.fi{flex:1;background:#161a22;border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#e6e8ee;font-size:12px;padding:6px 8px;outline:none;box-sizing:border-box}
+    .hint{font-size:10px;color:#5a6473;line-height:1.5;margin-top:14px;border-top:1px solid rgba(255,255,255,.05);padding-top:10px}
+    .cw{flex:1;min-height:0;padding:12px;box-sizing:border-box;display:flex;flex-direction:column}
     .ft{height:150px;flex-shrink:0;background:#0d0f14;border-top:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:8px 12px}
     .fth{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#7a8599;margin-bottom:6px;font-weight:600;display:flex;justify-content:space-between}
     .fr2{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.02)}
-    .ft2{color:#7a8599;min-width:50px}
-    .ft3{color:#60a5fa;font-weight:600;min-width:36px}
+    .ft2{color:#7a8599;min-width:42px}
+    .ft3{color:#60a5fa;font-weight:600;min-width:54px}
     .flt{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600}
     .flt.sweep{background:rgba(239,68,68,.15);color:#ef4444}
     .flt.block{background:rgba(234,179,8,.15);color:#eab308}
     .flt.unusual{background:rgba(168,85,247,.15);color:#a855f7}
     .flt.regular{background:rgba(120,120,120,.15);color:#888}
     .fd{color:#b0b8c4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
-    .fp{color:#22c55e;font-weight:600;text-align:right;min-width:60px}
+    .flr{color:#7a8599;text-align:right;min-width:54px;font-variant-numeric:tabular-nums}
+    .flx{color:#e6e8ee;font-weight:700;text-align:right;min-width:42px;font-variant-numeric:tabular-nums}
     .sb2{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#0d0f14;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#7a8599;flex-shrink:0}
     .sd{width:6px;height:6px;border-radius:50%;background:#22c55e}
     .sd.ld{background:#eab308;animation:p 1s infinite}
     .sd.er{background:#ef4444}
     @keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
-    .em{display:flex;align-items:center;justify-content:center;min-height:80px;opacity:.4;font-size:13px}
-    .lg{display:flex;gap:8px;padding:8px 12px;font-size:9px;color:#7a8599;border-top:1px solid rgba(255,255,255,.04)}
+    .em{display:flex;align-items:center;justify-content:center;flex:1;min-height:80px;opacity:.45;font-size:13px;text-align:center;padding:20px}
+    .lg{display:flex;gap:8px;padding:6px 2px 0;font-size:9px;color:#7a8599}
     .lg span{display:flex;align-items:center;gap:3px}
+    .kpi{display:flex;gap:10px;padding:10px 12px 4px;flex-shrink:0}
+    .kp{flex:1;background:#11141a;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 10px}
+    .kpl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#7a8599;font-weight:600}
+    .kpv{font-size:16px;font-weight:700;margin-top:2px}
+    .kpv.g{color:#34d399}.kpv.r{color:#f43f5e}.kpv.b{color:#38bdf8}.kpv.y{color:#fbbf24}
+    .fctrl{display:flex;gap:8px;padding:4px 12px 0;flex-shrink:0}
+    .fctrl .fs2,.fctrl .fi{flex:0 0 auto;width:auto;min-width:120px}
+    .trinity{display:flex;gap:10px;flex:1;min-height:0;padding:10px;box-sizing:border-box}
+    .tcell{flex:1;display:flex;flex-direction:column;background:#0d0f14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;min-width:0}
+    .tch{font-size:11px;font-weight:700;color:#cbd3df;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+    .tch small{color:#7a8599;font-weight:500}
+    .tcb{flex:1;min-height:0}
+    .heatwrap{flex:1;min-height:0;display:flex;flex-direction:column;padding:10px;box-sizing:border-box}
+    .heath{font-size:11px;font-weight:700;color:#cbd3df;padding-bottom:6px}
+    .heath small{color:#7a8599;font-weight:500}
+    .seg{display:inline-flex;gap:2px;background:#11141a;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:2px;vertical-align:middle}
+    .seg button{background:none;border:none;color:#7a8599;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;cursor:pointer;font-family:inherit}
+    .seg button.on{background:#3b82f6;color:#fff}
+    .det{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 10px;font-size:10px;color:#b0b8c4;border-top:1px solid rgba(255,255,255,.05);background:#0d0f14;flex-shrink:0}
+    .det b{color:#e6e8ee;font-weight:700}
+    .det .cx{color:#7a8599;cursor:pointer;margin-left:auto;font-weight:700}
+    .det .cl{color:#34d399}.det .pu{color:#f43f5e}
+    /* BladeMap Flow Scanner (FlowSeeker Pro hero) */
+    .scanwrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:10px;box-sizing:border-box;gap:8px}
+    .scanbar{display:flex;gap:8px;flex-shrink:0}
+    .skpi{flex:1;background:#11141a;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 10px}
+    .skl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#7a8599;font-weight:600}
+    .skv{font-size:15px;font-weight:700;margin-top:2px}
+    .skv.g{color:#34d399}.skv.r{color:#f43f5e}.skv.b{color:#38bdf8}.skv.y{color:#fbbf24}
+    .scanctrl{display:flex;gap:8px;flex-shrink:0;align-items:center;flex-wrap:wrap}
+    .scanctrl .fs2,.scanctrl .fi{flex:0 0 auto;width:auto;min-width:104px}
+    .scanctrl .note{font-size:9px;color:#5a6473;margin-left:auto;max-width:300px;line-height:1.35}
+    .scantable{flex:1;min-height:120px;overflow:auto;border:1px solid rgba(255,255,255,.06);border-radius:8px;background:#0d0f14}
+    table.stab{width:100%;border-collapse:collapse;font-size:11px}
+    table.stab thead th{position:sticky;top:0;background:#11141a;color:#7a8599;font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;text-align:right;padding:7px 9px;cursor:pointer;user-select:none;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;z-index:1}
+    table.stab thead th.l{text-align:left}
+    table.stab thead th:hover{color:#b0b8c4}
+    table.stab thead th.on{color:#e6e8ee}
+    table.stab tbody td{padding:5px 9px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);font-variant-numeric:tabular-nums;white-space:nowrap}
+    table.stab tbody td.l{text-align:left}
+    table.stab tbody tr{cursor:pointer}
+    table.stab tbody tr:hover{background:rgba(59,130,246,.08)}
+    table.stab tbody tr.sel{background:rgba(59,130,246,.14)}
+    .tk{font-weight:700;color:#e6e8ee}
+    .sub{color:#5a6473;font-size:9px}
+    .sc{display:inline-block;min-width:28px;text-align:center;padding:2px 6px;border-radius:5px;font-weight:800;font-size:11px}
+    .sc.crit{background:rgba(244,63,94,.18);color:#fb7185}
+    .sc.high{background:rgba(245,158,11,.16);color:#fbbf24}
+    .sc.elev{background:rgba(59,130,246,.14);color:#60a5fa}
+    .sc.norm{background:rgba(120,130,150,.12);color:#94a3b8}
+    .lean{font-weight:700;font-size:10px}
+    .lean.bull{color:#34d399}.lean.bear{color:#f43f5e}
+    .flt.split{background:rgba(59,130,246,.15);color:#60a5fa}
+    .tcall{color:#34d399;font-weight:700}.tput{color:#f43f5e;font-weight:700}
+    .drill{flex-shrink:0;height:290px;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+    .drillh{font-size:11px;font-weight:700;color:#cbd3df;padding:0 0 4px}
+    .drillh small{color:#7a8599;font-weight:500}
   </style>
 </head>
 <body>
-<div id="root"><div class="em">Connecting to cvserver...</div></div>
+<div id="root"><div class="em">Connecting to cvserver…</div></div>
 <script src="./cv-bootstrap.js"></script>
 <script>
 (function(){
 'use strict';
+
+// ---- Static config --------------------------------------------------------
 var T=['SPY','QQQ','IWM','DIA','TLT','AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL'];
-var tk='SPY',cd=null,fd=[],ld=false,er=null;
+var FIELDS=['expiration_date','strike_price','contract_type','implied_volatility',
+  'delta','gamma','theta','vega','bid','ask','midpoint','open_interest','day_volume','underlying_price'];
+// Each per-side value array is in full FIELDS order, so this map indexes both
+// call_vals and put_vals. Verified against the live cvserver chain response.
+var IDX={EXP:0,STRIKE:1,TYPE:2,IV:3,DELTA:4,GAMMA:5,THETA:6,VEGA:7,BID:8,ASK:9,MID:10,OI:11,VOL:12,SPOT:13};
+var TABS=[{id:'flow',name:'⚡ FlowSeeker Pro'},{id:'heat',name:'🔥 HeatSeeker'},{id:'trinity',name:'△ Trinity'},{id:'pcr',name:'📊 Put/Call Ratio'}];
+
+var st={tk:'SPY',tab:'flow',chain:null,chainTk:'',vol:[],spot:0,ld:false,er:null,last:'',flowType:'all',flowMinOI:0,heatMode:'net',
+  scan:[],scanAt:'',scanSort:{key:'score',dir:'desc'},scanType:'all',scanMinVol:0,scanMinScore:0,scanQ:'', pcrMode:'all'};
 var R=document.getElementById('root');
+var PLOT={responsive:true,displayModeBar:false};
 
-// Chain data format: [expiration, strike, type, iv, delta, gamma, theta, vega, bid, ask, midpoint, oi, volume, underlying]
-var IDX = {EXP:0, STRIKE:1, TYPE:2, IV:3, DELTA:4, GAMMA:5, THETA:6, VEGA:7, BID:8, ASK:9, MID:10, OI:11, VOL:12, SPOT:13};
-
-function fmt(v){return v==null?'—':(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0))}
+// ---- Formatters & accessors ----------------------------------------------
+function fmtK(v){if(v==null)return '—';v=+v;if(Math.abs(v)>=1e6)return (v/1e6).toFixed(1)+'M';if(Math.abs(v)>=1e3)return (v/1e3).toFixed(0)+'k';return v.toFixed(0)}
 function fmtPct(v){return v==null?'—':(v*100).toFixed(1)+'%'}
+function fmtUSD(v){if(v==null)return '—';var a=Math.abs(v),s=v<0?'-':'';if(a>=1e9)return s+'$'+(a/1e9).toFixed(2)+'B';if(a>=1e6)return s+'$'+(a/1e6).toFixed(0)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(0)+'k';return s+'$'+a.toFixed(0)}
+function callVals(s){return (s&&s[1])||[]}
+function putVals(s){return (s&&s[2])||[]}
+function num(v){return (typeof v==='number'&&isFinite(v))?v:0}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-function rend(){
-  R.innerHTML='<div class="as"><div class="tb"><h1>⚡ FLOWSEEKER PRO</h1>'+
-  '<span class="bd '+(er?'off':'')+'">'+(er?'ERROR':'LIVE')+'</span>'+
-  '<span style="margin-left:auto;font-size:11px;color:#7a8599">'+tk+' • cvserver</span></div>'+
-  '<div class="mn"><div class="sb">'+
-  '<input class="ti" id="ti" value="'+tk+'" placeholder="Ticker (e.g. SPY)"/>'+
-  '<div class="chips" id="chips"></div>'+
-  '<div class="fs"><div class="fl">Chain Filters</div><div class="fr">'+
-  '<select class="fs2" id="tf"><option value="all">All Types</option><option value="call">Calls</option><option value="put">Puts</option></select>'+
-  '<input class="fi" id="mp" type="number" value="0" placeholder="Min OI"/></div></div>'+
-  '<div class="fs"><div class="fl">Expiry</div><select class="fs2" id="ef" style="width:100%"><option value="0">First</option></select></div>'+
-  '</div>'+
-  '<div class="ct"><div class="cw">'+
-  '<div style="font-size:12px;font-weight:600;color:#b0b8c4;padding:0 0 8px" id="ctitle">Loading chain...</div>'+
-  '<div id="cc" style="height:calc(100% - 24px);"></div>'+
-  '<div class="lg"><span>● Call OI</span><span>● Put OI</span><span>— Delta</span><span>— Spot</span></div></div>'+
-  '<div class="ft"><div class="fth"><span>Live Flow</span><span id="fc">0 prints</span></div>'+
-  '<div id="ft"><div class="em">Waiting for flow data...</div></div></div></div></div>'+
-  '<div class="sb2"><span class="sd '+(ld?'ld':(er?'er':''))+'"></span>'+
-  '<span>'+(ld?'Fetching...':(er||'Connected to cvserver'))+'</span>'+
-  '<span style="margin-left:auto" id="lupdate"></span></div></div>';
-  bind(); renderChips(); loadData();
+// Per-expiry rows with every field we plot, pulled defensively.
+function expData(exp){
+  if(!exp||!exp.strikes) return [];
+  return exp.strikes.map(function(s){
+    var c=callVals(s), p=putVals(s);
+    return {strike:s[0],
+      cIV:c[IDX.IV], pIV:p[IDX.IV],
+      cOI:num(c[IDX.OI]), pOI:num(p[IDX.OI]),
+      cG:num(c[IDX.GAMMA]), pG:num(p[IDX.GAMMA]),
+      cD:c[IDX.DELTA], pD:p[IDX.DELTA],
+      cVol:num(c[IDX.VOL]), pVol:num(p[IDX.VOL])};
+  });
 }
-
-function renderChips(){
-  var c=document.getElementById('chips');
-  if(c) c.innerHTML=T.map(function(t){return '<span class="chip '+(t===tk?'on':'')+'" data-t="'+t+'">'+t+'</span>';}).join('');
-}
-
-function bind(){
-  var i=document.getElementById('ti');
-  if(i) i.addEventListener('keydown',function(e){if(e.key==='Enter'){tk=this.value.trim().toUpperCase();if(tk){loadData();}}});
-  document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){tk=this.dataset.t;loadData();});});
-  var tf=document.getElementById('tf'); if(tf) tf.addEventListener('change',function(){renderChart();});
-  var ef=document.getElementById('ef'); if(ef) ef.addEventListener('change',function(){renderChart();});
-  var mp=document.getElementById('mp'); if(mp) mp.addEventListener('change',function(){renderChart();});
-}
-
-async function loadData(){
-  ld=true; er=null; rend();
-  try{
-    // Fetch chain with all fields
-    var d = await window.cvApi.chain(tk, [
-      'expiration_date','strike_price','contract_type','implied_volatility',
-      'delta','gamma','theta','vega','bid','ask','midpoint',
-      'open_interest','day_volume','underlying_price'
-    ]);
-    cd = d;
-    // Populate expiry dropdown
-    var ef=document.getElementById('ef');
-    if(ef && d.chain){
-      ef.innerHTML = d.chain.map(function(c,i){return '<option value="'+i+'">'+c.expiration+'</option>';}).join('');
+function deriveSpot(chain){
+  var exps=(chain&&chain.chain)||[];
+  for(var i=0;i<exps.length;i++){
+    var ss=exps[i].strikes||[];
+    for(var j=0;j<ss.length;j++){
+      var v=callVals(ss[j])[IDX.SPOT]||putVals(ss[j])[IDX.SPOT];
+      if(v) return v;
     }
-    // Fetch flow
-    try{
-      var sf = await window.cvApi.screen({
-        columns:['ticker','strike_price','expiration_date','contract_type','trade_size','trade_price','open_interest','implied_volatility','delta','gamma','theta','vega','bid','ask','trade_conditions'],
-        filters:[{field:'underlying_ticker',op:'eq',value:tk}],
-        sort:[{field:'trade_price',direction:'desc'}],
-        limit:50
-      });
-      fd = (sf.rows||[]).map(function(r){
-        return {ticker:r[0],strike:r[1],exp:r[2],type:r[3],size:r[4],price:r[5],oi:r[6],iv:r[7],delta:r[8],gamma:r[9],theta:r[10],vega:r[11],bid:r[12],ask:r[13],conditions:r[14]};
-      });
-    }catch(e){console.log('Flow fetch failed (non-critical):',e);}
-    
-    document.getElementById('lupdate').textContent = new Date().toLocaleTimeString();
-    renderChart();
-    renderTape();
+  }
+  return 0;
+}
+function nearSpot(rows,spot,pct){
+  if(!spot) return rows;
+  var lo=spot*(1-pct), hi=spot*(1+pct);
+  return rows.filter(function(r){return r.strike>=lo&&r.strike<=hi;});
+}
+function curExpIdx(){
+  var ef=document.getElementById('ef');
+  var v=ef?parseInt(ef.value):0;
+  return isNaN(v)?0:v;
+}
+
+// ---- Shell (built once) ---------------------------------------------------
+function shell(){
+  R.innerHTML=''+
+  '<div class="as">'+
+    '<div class="tb"><h1>🧬 GITHUB FLOW <small>· Confluence Decoder</small></h1>'+
+      '<span class="bd" id="badge">LIVE</span>'+
+      '<span style="margin-left:auto;font-size:11px;color:#7a8599" id="hdrtk">'+st.tk+' • cvserver</span></div>'+
+    '<div class="tabs" id="tabs"></div>'+
+    '<div class="mn">'+
+      '<div class="sb">'+
+        '<input class="ti" id="ti" value="'+st.tk+'" placeholder="Ticker (e.g. SPY)"/>'+
+        '<div class="chips" id="chips"></div>'+
+        '<div class="fs"><div class="fl">Expiration</div>'+
+          '<select class="fs2" id="ef" style="width:100%"><option value="0">First</option></select></div>'+
+        '<div class="hint">All three tabs read the same live option chain for the selected ticker. '+
+          'Expiration drives FlowSeeker & Trinity’s front-month views; HeatSeeker maps the whole surface.</div>'+
+      '</div>'+
+      '<div class="ct"><div id="content"><div class="em">Loading '+st.tk+' chain…</div></div></div>'+
+    '</div>'+
+    '<div class="sb2"><span class="sd" id="dot"></span>'+
+      '<span id="statustext">Connecting…</span>'+
+      '<span style="margin-left:auto" id="lupdate"></span></div>'+
+  '</div>';
+  renderTabs(); renderChips(); bindShell(); setStatus();
+}
+
+function renderTabs(){
+  var el=document.getElementById('tabs'); if(!el) return;
+  el.innerHTML=TABS.map(function(t){return '<div class="tab '+(t.id===st.tab?'on':'')+'" data-tab="'+t.id+'">'+t.name+'</div>';}).join('');
+}
+function renderChips(){
+  var c=document.getElementById('chips'); if(!c) return;
+  c.innerHTML=T.map(function(t){return '<span class="chip '+(t===st.tk?'on':'')+'" data-t="'+t+'">'+t+'</span>';}).join('');
+}
+
+function bindShell(){
+  var i=document.getElementById('ti');
+  if(i) i.addEventListener('keydown',function(e){if(e.key==='Enter') selectTicker(this.value);});
+  var ch=document.getElementById('chips');
+  if(ch) ch.addEventListener('click',function(e){var c=e.target.closest('.chip'); if(c&&c.dataset.t) selectTicker(c.dataset.t);});
+  var tb=document.getElementById('tabs');
+  if(tb) tb.addEventListener('click',function(e){var t=e.target.closest('.tab'); if(t&&t.dataset.tab) setTab(t.dataset.tab);});
+  var ef=document.getElementById('ef');
+  if(ef) ef.addEventListener('change',function(){renderActiveTab();});
+}
+
+function selectTicker(t){
+  t=(t||'').trim().toUpperCase(); if(!t) return;
+  st.tk=t;
+  var i=document.getElementById('ti'); if(i) i.value=st.tk;
+  renderChips(); setStatus();
+  loadData();
+}
+function setTab(id){
+  st.tab=id; renderTabs(); renderActiveTab();
+  tick();   // e.g. switching to Flow fetches the scan only if its cache has expired
+}
+
+function setStatus(){
+  var rl=Date.now()<rlUntil;
+  var bd=document.getElementById('badge');
+  if(bd){bd.className='bd '+((st.er||rl)?'off':''); bd.textContent=rl?'RATE-LIMIT':(st.er?'ERROR':'LIVE');}
+  var sd=document.getElementById('dot');
+  if(sd) sd.className='sd '+(st.ld?'ld':((st.er||rl)?'er':''));
+  var sx=document.getElementById('statustext');
+  if(sx) sx.textContent=st.ld?'Fetching '+st.tk+'…':(rl?rlText():(st.er||'Connected to cvserver'));
+  var h=document.getElementById('hdrtk'); if(h) h.textContent=st.tk+' • cvserver';
+  var lu=document.getElementById('lupdate');
+  if(lu) lu.textContent=(st.last?'Updated '+st.last+' · ':'')+reqPerHr()+' req/hr';
+}
+
+// ---- Shared fetch layer (every tab pulls through here) --------------------
+// One pipe to cvserver for the whole app. A TTL cache + in-flight dedupe means
+// HeatSeeker, Trinity and the Flow drill-down share ONE chain request per
+// ticker per CHAIN_TTL (tab switches and repeat chip clicks are free), and the
+// cross-symbol scan polls only while the Flow tab is actually showing. The
+// feed is snapshot data (OI / day_volume / greeks — no tick tape), so 2–3 min
+// refreshes lose nothing. Worst case while visible on Flow: 30 chain + 20
+// scan = 50 req/hr, vs ~420/hr with the old dual 15s/20s blind timers. A 429
+// trips a cool-down: polling pauses, cached data keeps rendering.
+var CHAIN_TTL=120000;           // per-ticker chain refresh (2 min ≈ 30 req/hr)
+var SCAN_TTL=180000;            // cross-symbol scan refresh (3 min ≈ 20 req/hr)
+var RL_PAUSE=600000;            // after a 429: pause all polling 10 min
+var FAIL_BACKOFF=90000;         // after a failed request: no auto-retry for 90s, escalating on repeats
+var chainCache={};              // tk → {data, at}
+var scanCache={rows:null,at:0};
+var inflight={};                // key → promise; concurrent callers share one request
+var fails={};                   // key → {until, msg, n}; failure backoff so errors can't retry-storm
+var rlUntil=0;                  // timestamp; > now means rate-limited
+var reqLog=[];                  // request timestamps for the req/hr readout
+
+function reqPerHr(){var now=Date.now(); while(reqLog.length&&now-reqLog[0]>3600000) reqLog.shift(); return reqLog.length;}
+function noteReq(){reqLog.push(Date.now()); reqPerHr();}
+function isRateLimited(e){var m=((e&&e.message)||String(e)).toLowerCase(); return m.indexOf('429')>=0||m.indexOf('limit reached')>=0;}
+function rlText(){return 'Hourly API limit hit — polling paused, retrying at '+new Date(rlUntil).toLocaleTimeString()+' · showing cached data';}
+// Failure backoff: without this, a fast-failing request (5xx, network blip)
+// would be re-issued by every 5s tick — a worse storm than the one this
+// fetch layer exists to prevent. Consecutive failures stretch the pause.
+function noteFail(key,e){var f=fails[key]||{n:0}; f.n++; f.until=Date.now()+Math.min(FAIL_BACKOFF*f.n,600000); f.msg=(e&&e.message)||String(e); fails[key]=f;}
+function failBlocked(key){var f=fails[key]; return (f&&Date.now()<f.until)?f:null;}
+
+function fetchChain(tk){
+  var c=chainCache[tk], now=Date.now();
+  if(c&&now-c.at<CHAIN_TTL) return Promise.resolve(c.data);
+  if(now<rlUntil) return c?Promise.resolve(c.data):Promise.reject(new Error(rlText()));  // stale beats nothing
+  var key='chain:'+tk;
+  var f=failBlocked(key);
+  if(f) return c?Promise.resolve(c.data):Promise.reject(new Error(f.msg));
+  if(inflight[key]) return inflight[key];
+  noteReq();
+  inflight[key]=window.cvApi.chain(tk,FIELDS).then(function(d){
+    delete inflight[key]; delete fails[key]; chainCache[tk]={data:d,at:Date.now()}; return d;
+  },function(e){
+    delete inflight[key]; if(isRateLimited(e)) rlUntil=Date.now()+RL_PAUSE; else noteFail(key,e); throw e;
+  });
+  return inflight[key];
+}
+function fetchScan(){
+  var now=Date.now();
+  if(scanCache.rows&&now-scanCache.at<SCAN_TTL) return Promise.resolve(scanCache.rows);
+  if(now<rlUntil) return scanCache.rows?Promise.resolve(scanCache.rows):Promise.reject(new Error(rlText()));
+  var f=failBlocked('scan');
+  if(f) return scanCache.rows?Promise.resolve(scanCache.rows):Promise.reject(new Error(f.msg));
+  if(inflight.scan) return inflight.scan;
+  noteReq();
+  inflight.scan=window.cvApi.screen({
+    columns:['underlying_ticker','ticker','contract_type','strike_price','expiration_date','day_volume','open_interest','implied_volatility','delta','underlying_price'],
+    filters:[{field:'day_volume',op:'gt',value:1000}],
+    sort:[{field:'day_volume',direction:'desc'}],
+    limit:300
+  }).then(function(sf){
+    delete inflight.scan; delete fails.scan; scanCache={rows:sf.rows||[],at:Date.now()}; return scanCache.rows;
+  },function(e){
+    delete inflight.scan; if(isRateLimited(e)) rlUntil=Date.now()+RL_PAUSE; else noteFail('scan',e); throw e;
+  });
+  return inflight.scan;
+}
+
+// ---- Data load (shared across all tabs) -----------------------------------
+// reqSeq guards against overlapping loads: a slow request for a previous ticker
+// resolving after a ticker switch must NOT overwrite the current symbol's data.
+var reqSeq=0;
+async function loadData(){
+  var myId=++reqSeq;
+  st.ld=true; st.er=null; setStatus();
+  try{
+    var d=await fetchChain(st.tk);
+    if(myId!==reqSeq) return;                 // superseded by a newer load
+    st.chain=d; st.chainTk=st.tk; st.spot=deriveSpot(d);
+    // Cross-symbol flow now lives in the BladeMap scanner (loadScan); the
+    // per-ticker chain still drives the drill-down chart, HeatSeeker & Trinity.
+    populateExpiry();
+    var at=chainCache[st.tk]?chainCache[st.tk].at:Date.now();
+    st.last=new Date(at).toLocaleTimeString();
+    renderActiveTab();
   }catch(e){
-    er = e.message || String(e);
-    console.error('cvApi error:', e);
+    if(myId!==reqSeq) return;
+    st.er=e.message||String(e); console.error('cvApi error:',e);
+    renderActiveTab();                        // error screen only if no cached view fits
   }finally{
-    ld=false; rend();
+    if(myId===reqSeq){ st.ld=false; setStatus(); }
   }
 }
 
-function renderChart(){
-  var el=document.getElementById('cc'); if(!el||!cd||!cd.chain||!cd.chain.length){
-    if(el) el.innerHTML='<div class="em">No chain data available</div>';
+function populateExpiry(){
+  var ef=document.getElementById('ef'); if(!ef||!st.chain||!st.chain.chain) return;
+  var exps=st.chain.chain.map(function(c){return c.expiration;});
+  var sig=exps.join('|');
+  if(ef.getAttribute('data-sig')===sig) return;   // unchanged: don't snap an open dropdown shut mid-poll
+  var sel=ef.options[ef.selectedIndex], prevDate=sel?sel.textContent:'';
+  ef.innerHTML=exps.map(function(e,i){return '<option value="'+i+'">'+e+'</option>';}).join('');
+  ef.setAttribute('data-sig',sig);
+  for(var i=0;i<exps.length;i++){ if(exps[i]===prevDate){ ef.value=i; break; } }  // preserve by date, not index
+}
+
+// ---- Tab dispatch ---------------------------------------------------------
+// Rebuild the tab's DOM only when tab / ticker / expiry change; a plain 15s
+// data poll just refreshes the plots in place so it never steals input focus.
+var builtKey=null;
+function renderActiveTab(){
+  var el=document.getElementById('content'); if(!el) return;
+  // A failed poll only blanks the tab when there's no cached chain for the
+  // CURRENT ticker — otherwise keep the charts up and let the status bar
+  // carry the error (matters during 429 cool-downs). The Flow tab is exempt
+  // entirely: its scanner doesn't depend on the chain, so a chain error only
+  // degrades the drill-down pane (handled inside drawFlowChart).
+  if(st.tab!=='flow'){
+    if(st.er&&(!st.chain||st.chainTk!==st.tk)){el.innerHTML='<div class="em">'+esc(st.er)+'</div>'; builtKey=null; return;}
+    if(!st.chain||!st.chain.chain||!st.chain.chain.length){el.innerHTML='<div class="em">Loading '+st.tk+' chain…</div>'; builtKey=null; return;}
+  }
+  // Flow tab builds once; the scanner persists while the drill-down chart
+  // updates in place on ticker change. Heat/Trinity rebuild per ticker+expiry.
+  var key=(st.tab==='flow')?'flow':(st.tab+'|'+st.tk+'|'+curExpIdx());
+  var rebuild=(builtKey!==key); builtKey=key;
+  if(st.tab==='flow') renderFlow(el,rebuild);
+  else if(st.tab==='heat') renderHeat(el,rebuild);
+  else if(st.tab==='trinity') renderTrinity(el,rebuild);
+  else el.innerHTML='<div class="em">📊 Put/Call Ratio — not built yet. FlowSeeker, HeatSeeker & Trinity are live.</div>';
+}
+
+// ============================ TAB 1: FlowSeeker Pro =========================
+// BladeMap-style institutional flow scanner (ported from the cv-apps/screener
+// blademap build) — cross-symbol, scored, sortable. Built entirely on LIVE
+// cvserver data: day_volume-vs-OI is the unusual-activity core signal. This
+// feed has no per-trade tape (bid/ask/trade_price/size are null), so Flow-type
+// is a volume-magnitude class and Lean is contract-type bias — NOT synthesized
+// prints. Clicking a row drills into that name's OI/greeks chart below.
+function renderFlow(host,rebuild){
+  if(rebuild){
+    host.innerHTML=''+
+      '<div class="scanwrap">'+
+        '<div class="scanbar" id="scanstats"></div>'+
+        '<div class="scanctrl">'+
+          '<select class="fs2" id="stype"><option value="all">All Types</option><option value="call">Calls</option><option value="put">Puts</option></select>'+
+          '<input class="fi" id="sminvol" type="number" min="0" step="1000" placeholder="Min Vol" value="'+(st.scanMinVol||'')+'"/>'+
+          '<input class="fi" id="sminscore" type="number" min="0" max="100" step="5" placeholder="Min Score" value="'+(st.scanMinScore||'')+'"/>'+
+          '<input class="fi" id="sq" placeholder="Ticker…" style="min-width:88px" value="'+(st.scanQ||'')+'"/>'+
+          '<span class="note">Live cross-symbol flow · cvserver day-volume vs OI. No per-trade tape on this feed — Flow-type = volume-magnitude class; Lean = contract-type bias.</span>'+
+        '</div>'+
+        '<div class="scantable" id="scantable"><div class="em">Scanning market flow…</div></div>'+
+        '<div class="drill" id="drill">'+
+          '<div class="drillh" id="drillh">Drill-down · '+st.tk+'</div>'+
+          '<div class="kpi">'+
+            kpi('Spot','spot','b')+kpi('Put/Call OI','pcr','y')+kpi('Total OI','toi','')+
+            kpi('ATM IV','atmiv','g')+kpi('Day Vol','tvol','b')+'</div>'+
+          '<div class="cw">'+
+            '<div id="cc" style="flex:1;min-height:0"></div>'+
+            '<div class="lg"><span>● Call OI</span><span>● Put OI</span><span>— Delta</span><span style="color:#38bdf8">┄ Spot</span><span style="color:#a855f7">┄ Flip</span><span style="color:#f59e0b">┄ Max Pain</span><span style="opacity:.6">(click a strike)</span></div>'+
+          '</div>'+
+          '<div class="det" id="fdet" style="display:none"></div>'+
+        '</div>'+
+      '</div>';
+    // Filter controls → re-render the table in place (no rebuild).
+    var stype=document.getElementById('stype'); if(stype){stype.value=st.scanType; stype.addEventListener('change',function(){st.scanType=this.value; renderScanner();});}
+    var smv=document.getElementById('sminvol'); if(smv) smv.addEventListener('input',function(){st.scanMinVol=parseFloat(this.value)||0; renderScanner();});
+    var sms=document.getElementById('sminscore'); if(sms) sms.addEventListener('input',function(){st.scanMinScore=parseFloat(this.value)||0; renderScanner();});
+    var sq=document.getElementById('sq'); if(sq) sq.addEventListener('input',function(){st.scanQ=(this.value||'').trim().toUpperCase(); renderScanner();});
+    // One delegated listener on the table container survives innerHTML swaps:
+    // header click → sort; row click → drill into that underlying.
+    var tbl=document.getElementById('scantable');
+    if(tbl) tbl.addEventListener('click',function(e){
+      var th=e.target.closest('th[data-k]');
+      if(th){ sortScan(th.dataset.k); return; }
+      var tr=e.target.closest('tr[data-u]');
+      if(tr&&tr.dataset.u){ selectTicker(tr.dataset.u); }
+    });
+  }
+  var dh=document.getElementById('drillh'); if(dh) dh.textContent='Drill-down · '+st.tk;
+  renderScanner();
+  drawFlowChart();
+}
+
+// ---- Scanner engine (derived live, BladeMap-faithful intent) --------------
+// Trading-day DTE: calendar days minus weekends (a light nod to the spec's
+// NYSE-calendar DTE without pulling a holiday library into a single file).
+function bizDTE(expStr){
+  if(!expStr) return null;
+  var end=new Date(expStr+'T16:00:00Z'), now=new Date();
+  if(end<=now) return 0;
+  var cal=(end-now)/86400000, full=Math.min(Math.floor(cal),800), d=0, cur=new Date(now);
+  for(var i=0;i<full;i++){ cur.setUTCDate(cur.getUTCDate()+1); var wd=cur.getUTCDay(); if(wd!==0&&wd!==6) d++; }
+  return d;
+}
+// Flow-type class — mirrors BladeMap sweep/block/split badges, but keyed off
+// volume magnitude + vol/OI (the only signals a print-less feed can support).
+function scanType(r){
+  if(r.vol>=25000) return 'sweep';
+  if(r.vol>=8000) return 'block';
+  if(r.volOI>=2) return 'unusual';
+  if(r.volOI>=1) return 'split';
+  return 'regular';
+}
+// Flow Score 0–100 — BladeMap's tiered composite, on live inputs only:
+// positioning freshness (vol/OI), size, notional, urgency (DTE), OTM lean.
+function scanScore(r){
+  var dl=Math.abs(r.delta||0);
+  var pos=Math.min(r.volOI/3,1);
+  var size=Math.min(Math.log(Math.max(r.vol,1))/Math.log(50000),1);
+  var notl=Math.min(Math.log(Math.max(r.notional,1))/Math.log(50e6),1);
+  var urg=r.dte==null?0.3:(r.dte<=2?1:r.dte<=7?0.7:r.dte<=30?0.4:0.15);
+  var otm=r.delta==null?0.3:Math.max(0,Math.min((0.5-dl)/0.4,1));
+  var s=pos*0.34+size*0.24+notl*0.18+urg*0.14+otm*0.10;
+  return Math.max(0,Math.min(100,Math.round(s*100)));
+}
+function scoreGrade(s){ return s>=80?'crit':s>=65?'high':s>=50?'elev':'norm'; }
+
+// Market-wide scan — independent of the selected ticker; refreshed through
+// fetchScan's shared cache and ONLY while the Flow tab is showing. Sorted by
+// day_volume desc so the most active flow surfaces first.
+async function loadScan(){
+  try{
+    var rows=await fetchScan();
+    st.scan=rows.map(function(r){
+      var vol=num(r[5]), oi=num(r[6]), strike=num(r[3]);
+      var o={under:r[0],contract:r[1],type:r[2],strike:strike,exp:r[4],vol:vol,oi:oi,
+             iv:r[7],delta:r[8],spot:num(r[9]),volOI:oi>0?vol/oi:(vol>0?99:0),notional:vol*100*strike};
+      o.dte=bizDTE(r[4]); o.score=scanScore(o); o.ftype=scanType(o);
+      return o;
+    });
+    st.scanAt=new Date(scanCache.at||Date.now()).toLocaleTimeString();
+  }catch(e){ console.log('Scan fetch failed (non-critical):',e); }
+  // Full dispatch (not just renderScanner): builds the Flow tab if the chain
+  // request is still pending/failed, so scan data is never held hostage by it.
+  if(st.tab==='flow') renderActiveTab();
+  setStatus();
+}
+
+function sortScan(k){
+  var s=st.scanSort;
+  if(s.key===k) s.dir=(s.dir==='desc'?'asc':'desc');
+  else { s.key=k; s.dir=(k==='under'||k==='type'||k==='ftype')?'asc':'desc'; }
+  renderScanner();
+}
+function scanFiltered(){
+  var q=st.scanQ;
+  var rows=st.scan.filter(function(r){
+    if(st.scanType!=='all' && r.type!==st.scanType) return false;
+    if(st.scanMinVol && r.vol<st.scanMinVol) return false;
+    if(st.scanMinScore && r.score<st.scanMinScore) return false;
+    if(q && (r.under||'').toUpperCase().indexOf(q)<0) return false;
+    return true;
+  });
+  var k=st.scanSort.key, dir=st.scanSort.dir==='desc'?-1:1;
+  rows.sort(function(a,b){
+    var av=a[k], bv=b[k];
+    if(typeof av==='string'||typeof bv==='string'){
+      return String(av).localeCompare(String(bv))*dir;
+    }
+    av=(av==null?-Infinity:av); bv=(bv==null?-Infinity:bv);
+    return (av<bv?-1:av>bv?1:0)*dir;
+  });
+  return rows;
+}
+
+var SCAN_COLS=[
+  {k:'score',t:'Score',l:false},{k:'under',t:'Ticker',l:true},{k:'type',t:'C/P',l:true},
+  {k:'strike',t:'Strike',l:false},{k:'dte',t:'DTE',l:false},{k:'vol',t:'Volume',l:false},
+  {k:'oi',t:'OI',l:false},{k:'volOI',t:'Vol/OI',l:false},{k:'notional',t:'Notional',l:false},
+  {k:'iv',t:'IV',l:false},{k:'ftype',t:'Flow',l:true},{k:'lean',t:'Lean',l:true}
+];
+function renderScanner(){
+  var el=document.getElementById('scantable'); if(!el) return;
+  if(!st.scan.length){
+    var msg=Date.now()<rlUntil?rlText():(failBlocked('scan')?'Scan fetch failed — auto-retrying shortly':'Scanning market flow…');
+    el.innerHTML='<div class="em">'+esc(msg)+'</div>'; renderScanStats([]); return;
+  }
+  var rows=scanFiltered();
+  renderScanStats(rows);
+  if(!rows.length){ el.innerHTML='<div class="em">No contracts pass these filters</div>'; return; }
+  var s=st.scanSort, arrow=s.dir==='desc'?' ▾':' ▴';
+  var head='<thead><tr>'+SCAN_COLS.map(function(c){
+    return '<th class="'+(c.l?'l':'')+(c.k===s.key?' on':'')+'" data-k="'+c.k+'">'+c.t+(c.k===s.key?arrow:'')+'</th>';
+  }).join('')+'</tr></thead>';
+  var body=rows.slice(0,200).map(function(r){
+    var isCall=r.type==='call';
+    var strk=r.strike%1===0?r.strike.toFixed(0):r.strike.toFixed(1);
+    var otm=r.delta==null?'':(Math.abs(r.delta)<0.45?'OTM':'ITM');
+    return '<tr data-u="'+esc(r.under)+'"'+(r.under===st.tk?' class="sel"':'')+'>'+
+      '<td><span class="sc '+scoreGrade(r.score)+'">'+r.score+'</span></td>'+
+      '<td class="l"><span class="tk">'+esc(r.under)+'</span> <span class="sub">'+esc((r.exp||'').slice(5))+'</span></td>'+
+      '<td class="l"><span class="'+(isCall?'tcall':'tput')+'">'+(isCall?'CALL':'PUT')+'</span></td>'+
+      '<td>'+strk+'</td>'+
+      '<td>'+(r.dte==null?'—':r.dte+'d')+'</td>'+
+      '<td>'+fmtK(r.vol)+'</td>'+
+      '<td>'+fmtK(r.oi)+'</td>'+
+      '<td>'+(r.volOI>=99?'99+':r.volOI.toFixed(1))+'x</td>'+
+      '<td>'+fmtUSD(r.notional)+'</td>'+
+      '<td>'+(r.iv!=null?fmtPct(r.iv):'—')+'</td>'+
+      '<td class="l"><span class="flt '+r.ftype+'">'+r.ftype.toUpperCase()+'</span></td>'+
+      '<td class="l"><span class="lean '+(isCall?'bull':'bear')+'">'+(isCall?'▲ BULL':'▼ BEAR')+'</span>'+(otm?' <span class="sub">'+otm+'</span>':'')+'</td>'+
+    '</tr>';
+  }).join('');
+  el.innerHTML='<table class="stab">'+head+'<tbody>'+body+'</tbody></table>';
+}
+function renderScanStats(rows){
+  var host=document.getElementById('scanstats'); if(!host) return;
+  var notl=0, cv=0, pv=0, unusual=0, cnt={};
+  rows.forEach(function(r){
+    notl+=r.notional;
+    if(r.type==='call') cv+=r.vol; else pv+=r.vol;
+    if(r.volOI>=2) unusual++;
+    cnt[r.under]=(cnt[r.under]||0)+1;
+  });
+  var top='—', best=0; Object.keys(cnt).forEach(function(u){ if(cnt[u]>best){best=cnt[u]; top=u;} });
+  var tv=cv+pv, cpct=tv>0?Math.round(cv/tv*100):0;
+  host.innerHTML=''+
+    skpi('Contracts',rows.length+' / '+st.scan.length,'b')+
+    skpi('Notional Σ',fmtUSD(notl),'')+
+    skpi('Call/Put Vol',tv>0?(cpct+'% / '+(100-cpct)+'%'):'—',cpct>=50?'g':'r')+
+    skpi('Unusual (≥2×)',String(unusual),'y')+
+    skpi('Top Name',top+(best?' ·'+best:''),'')+
+    skpi('Updated',st.scanAt||'—','');
+}
+function skpi(label,v,cls){return '<div class="skpi"><div class="skl">'+label+'</div><div class="skv '+(cls||'')+'">'+v+'</div></div>';}
+
+function drawFlowChart(){
+  var el=document.getElementById('cc'); if(!el) return;
+  // The Flow tab renders without a chain (scanner is independent); only this
+  // drill-down pane needs it, so degrade just this pane on error/loading.
+  if(!st.chain||!st.chain.chain||!st.chain.chain.length||st.chainTk!==st.tk){
+    Plotly.purge(el);
+    el.innerHTML='<div class="em">'+(st.er?esc(st.er):'Loading '+st.tk+' chain…')+'</div>';
     return;
   }
-  var ef=document.getElementById('ef');
-  var expIdx = ef ? parseInt(ef.value) || 0 : 0;
-  var exp = cd.chain[expIdx]; if(!exp) return;
-  
-  var strikes = exp.strikes.map(function(s){return s[IDX.STRIKE];});
-  var callOI = exp.strikes.map(function(s){return s[IDX.OI]||0;});
-  var putOI = exp.strikes.map(function(s){return s[IDX.PUT_OI]||0;});
-  // For put OI, we need to look at put_vals
-  if(exp.strikes[0].length > 2 && exp.strikes[0][2]){
-    // New format: strikes = [[strike, [call_vals], [put_vals]]]
-    callOI = exp.strikes.map(function(s){return (s[1]||[])[IDX.OI]||0;});
-    putOI = exp.strikes.map(function(s){return (s[2]||[])[IDX.OI]||0;});
-  }
-  var delta = exp.strikes.map(function(s){return (s[1]||[])[IDX.DELTA]||0;});
-  var spot = exp.strikes[0] ? (exp.strikes[0][1]||[])[IDX.SPOT]||0 : 0;
-  
-  // Filter
-  var tf=document.getElementById('tf');
-  var minOI = parseFloat(document.getElementById('mp')?.value||0);
-  
-  var maxOI = Math.max.apply(null, callOI.concat(putOI)) || 1;
-  if(maxOI === 0) {el.innerHTML='<div class="em">All OI is 0</div>'; return;}
-  
-  var traces = [
-    {y:strikes,x:callOI.map(function(v){return -(v/maxOI)*100;}),type:'bar',orientation:'h',name:'Call OI',marker:{color:'rgba(52,211,153,0.7)'},customdata:callOI,hovertemplate:'Call OI: %{customdata}<extra></extra>'},
-    {y:strikes,x:putOI.map(function(v){return (v/maxOI)*100;}),type:'bar',orientation:'h',name:'Put OI',marker:{color:'rgba(244,63,94,0.7)'},customdata:putOI,hovertemplate:'Put OI: %{customdata}<extra></extra>'},
-    {y:strikes,x:delta.map(function(v){return (v-0.5)*200;}),type:'scatter',mode:'lines',name:'Delta',line:{color:'#fbbf24',width:2}},
-  ];
-  
-  if(spot>0){
-    traces.push({y:strikes,x:strikes.map(function(){return 0;}),type:'scatter',mode:'markers',name:'Spot '+spot.toFixed(0),marker:{color:'#38bdf8',size:8,symbol:'line-ns'}});
-  }
-  
-  var layout = {
-    title:{text:'OI by Strike — '+cd.symbol+' ('+exp.expiration+')',font:{color:'#94a3b8',size:12}},
+  var exp=st.chain.chain[curExpIdx()];
+  if(!exp||!exp.strikes||!exp.strikes.length){Plotly.purge(el); el.innerHTML='<div class="em">No strikes for this expiry</div>'; return;}
+
+  var spot=st.spot;
+  var rows=expData(exp).filter(function(r){return Math.max(r.cOI,r.pOI)>=st.flowMinOI;});
+  computeKpis(exp,spot);
+  if(!rows.length){Plotly.purge(el); el.innerHTML='<div class="em">No strikes pass the Min-OI filter</div>'; return;}
+
+  var strikes=rows.map(function(r){return r.strike;});
+  var callOI=rows.map(function(r){return r.cOI;});
+  var putOI=rows.map(function(r){return r.pOI;});
+  var delta=rows.map(function(r){return (st.flowType==='put'?r.pD:r.cD)||0;});
+  var showCall=st.flowType!=='put', showPut=st.flowType!=='call';
+  var maxOI=Math.max.apply(null,(showCall?callOI:[]).concat(showPut?putOI:[]))||1;
+  if(maxOI===0){Plotly.purge(el); el.innerHTML='<div class="em">All OI is 0 here</div>'; return;}
+
+  var traces=[];
+  if(showCall) traces.push({y:strikes,x:callOI.map(function(v){return -(v/maxOI)*100;}),type:'bar',orientation:'h',name:'Call OI',marker:{color:'rgba(52,211,153,0.7)'},customdata:callOI,hovertemplate:'Call OI %{customdata:,}<extra></extra>'});
+  if(showPut) traces.push({y:strikes,x:putOI.map(function(v){return (v/maxOI)*100;}),type:'bar',orientation:'h',name:'Put OI',marker:{color:'rgba(244,63,94,0.7)'},customdata:putOI,hovertemplate:'Put OI %{customdata:,}<extra></extra>'});
+  traces.push({y:strikes,x:delta.map(function(v){return (Math.abs(v)-0.5)*200;}),type:'scatter',mode:'lines',name:'Delta',line:{color:'#fbbf24',width:2},customdata:delta,hovertemplate:'Δ %{customdata:.2f}<extra></extra>'});
+  if(spot>0) traces.push({y:[spot,spot],x:[-100,100],type:'scatter',mode:'lines',name:'Spot '+spot.toFixed(0),line:{color:'#38bdf8',width:1,dash:'dot'},hoverinfo:'name'});
+
+  // Overlay the derived key levels (gamma flip = whole-chain, max pain = this expiry).
+  var struct=computeStructure();
+  function hline(y,color){return {type:'line',x0:0,x1:1,xref:'paper',y0:y,y1:y,line:{color:color,width:1,dash:'dot'}};}
+  var shapes=[];
+  if(struct.flip!=null) shapes.push(hline(struct.flip,'#a855f7'));
+  if(struct.maxpain!=null) shapes.push(hline(struct.maxpain,'#f59e0b'));
+
+  var layout={
     paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',barmode:'overlay',
-    margin:{l:50,r:20,t:30,b:30},
-    xaxis:{title:'OI (normalized)',color:'#64748b',zeroline:true,zerolinecolor:'#475569',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
-    yaxis:{title:'Strike',color:'#64748b',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
-    legend:{orientation:'h',y:1.1,font:{size:9}},
-    hovermode:'x unified',
-    displayModeBar:false,
-    shapes:[{type:'line',x0:0,x1:0,y0:0,y1:1,yref:'paper',line:{color:'rgba(255,255,255,.15)',width:1,dash:'dot'}}],
+    margin:{l:52,r:14,t:8,b:28},
+    xaxis:{title:{text:'OI (normalized) · Calls ← → Puts',font:{size:9}},color:'#64748b',zeroline:true,zerolinecolor:'#475569',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
+    yaxis:{color:'#64748b',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:9}},
+    legend:{orientation:'h',y:1.08,font:{size:9}},showlegend:false,
+    hovermode:'closest', uirevision:'flow', shapes:shapes
   };
-  
-  Plotly.newPlot(el, traces, layout, {responsive:true, displayModeBar:false});
-  document.getElementById('ctitle').textContent = 'OI by Strike — '+cd.symbol+' ('+exp.expiration+') — '+strikes.length+' strikes';
+  Plotly.react(el,traces,layout,PLOT);
+  // Click a bar/strike → detail readout. removeAllListeners avoids stacking handlers across polls.
+  if(el.removeAllListeners) el.removeAllListeners('plotly_click');
+  if(el.on) el.on('plotly_click',function(ev){
+    var p=ev&&ev.points&&ev.points[0]; if(!p) return;
+    showStrikeDetail(rows, p.y);
+  });
+  var ct=document.getElementById('ctitle');
+  if(ct) ct.textContent='Open Interest — '+st.chain.symbol+' ('+exp.expiration+') · '+strikes.length+' strikes';
 }
 
-function renderTape(){
-  var el=document.getElementById('ft'); if(!el) return;
-  document.getElementById('fc').textContent = fd.length;
-  if(!fd.length){el.innerHTML='<div class="em">No flow data</div>';return;}
-  el.innerHTML=fd.slice(0,30).map(function(p){
-    var cls=p.conditions||'regular';
-    if(p.size>=100)cls='sweep';
-    if(p.size>=500)cls='block';
-    if((p.oi/Math.max(p.size,1))>2)cls='unusual';
-    var t=p.strike?(p.strike%1===0?p.strike.toFixed(0):p.strike.toFixed(1)):'—';
+// Render the clicked strike's per-side detail into #fdet.
+function showStrikeDetail(rows, strike){
+  var el=document.getElementById('fdet'); if(!el) return;
+  var r=null,best=Infinity;
+  (rows||[]).forEach(function(x){var g=Math.abs(x.strike-strike); if(g<best){best=g; r=x;}});
+  if(!r){el.style.display='none'; return;}
+  el.style.display='flex';
+  el.innerHTML='<b>'+(r.strike%1===0?r.strike.toFixed(0):r.strike.toFixed(2))+'</b>'+
+    '<span class="cl">C: '+fmtK(r.cOI)+' OI · '+(r.cIV!=null?fmtPct(r.cIV):'—')+' IV · Δ'+(r.cD!=null?r.cD.toFixed(2):'—')+'</span>'+
+    '<span class="pu">P: '+fmtK(r.pOI)+' OI · '+(r.pIV!=null?fmtPct(r.pIV):'—')+' IV · Δ'+(r.pD!=null?r.pD.toFixed(2):'—')+'</span>'+
+    '<span>Γ c'+r.cG.toFixed(4)+' / p'+r.pG.toFixed(4)+'</span>'+
+    '<span class="cx" onclick="this.parentNode.style.display=\'none\'">✕</span>';
+}
+
+function computeKpis(exp,spot){
+  var totCall=0,totPut=0,totVol=0,atmIv=null,bestGap=Infinity;
+  expData(exp).forEach(function(r){
+    totCall+=r.cOI; totPut+=r.pOI; totVol+=r.cVol+r.pVol;
+    if(spot>0){
+      var gap=Math.abs((r.strike||0)-spot);
+      if(gap<bestGap){bestGap=gap; var ivs=[r.cIV,r.pIV].filter(function(v){return v!=null;});
+        atmIv=ivs.length?ivs.reduce(function(a,b){return a+b;},0)/ivs.length:null;}
+    }
+  });
+  setKpi('spot',spot>0?spot.toFixed(2):'—');
+  setKpi('pcr',totCall>0?(totPut/totCall).toFixed(2):'—');
+  setKpi('toi',fmtK(totCall+totPut));
+  setKpi('atmiv',atmIv!=null?fmtPct(atmIv):'—');
+  setKpi('tvol',fmtK(totVol));
+}
+function kpi(label,id,cls){return '<div class="kp"><div class="kpl">'+label+'</div><div class="kpv '+(cls||'')+'" id="kp_'+id+'">—</div></div>';}
+function setKpi(id,v){var e=document.getElementById('kp_'+id); if(e) e.textContent=v;}
+
+function classify(p){
+  if(p.ratio>=2) return 'unusual';   // volume >2x OI → fresh positioning
+  if(p.vol>=50000) return 'block';
+  if(p.vol>=10000) return 'sweep';
+  return 'regular';
+}
+function drawTape(){
+  var el=document.getElementById('ftape'); if(!el) return;
+  var fc=document.getElementById('fc'); if(fc) fc.textContent=st.vol.length+' active';
+  if(!st.vol.length){el.innerHTML='<div class="em">No active volume right now</div>'; return;}
+  el.innerHTML=st.vol.slice(0,30).map(function(p){
+    var cls=classify(p);
+    var t=p.strike!=null?(p.strike%1===0?p.strike.toFixed(0):p.strike.toFixed(1)):'—';
+    var side=(p.type||'').charAt(0).toUpperCase();
     return '<div class="fr2"><span class="ft2">'+(p.exp||'').slice(5)+'</span>'+
-    '<span class="ft3">'+(p.type||'')+'</span>'+
-    '<span class="flt '+cls+'">'+cls.toUpperCase()+'</span>'+
-    '<span class="fd">'+t+' @ '+(p.price?'$'+p.price.toFixed(0):'—')+' ('+(p.size||0)+')</span>'+
-    '<span class="fp">$'+fmt(p.price*(p.size||100)/100)+'</span></div>';
+      '<span class="ft3">'+t+' '+side+'</span>'+
+      '<span class="flt '+cls+'">'+cls.toUpperCase()+'</span>'+
+      '<span class="fd">'+fmtK(p.vol)+' vol · '+fmtK(p.oi)+' oi</span>'+
+      '<span class="flr">'+(p.iv!=null?fmtPct(p.iv):'—')+'</span>'+
+      '<span class="flx">'+(p.ratio?p.ratio.toFixed(1)+'x':'—')+'</span></div>';
   }).join('');
 }
 
-// Init
-rend();
-setInterval(loadData,15000);
+// ============================ TAB 2: HeatSeeker ============================
+// Dealer gamma-exposure (GEX) heatmap: strikes (rows) × expirations (cols),
+// colour = net dealer gamma per cell ≈ (callΓ·callOI − putΓ·putOI)·100·S²·0.01,
+// in $MM per 1% move. Green = long-gamma (price-stabilising / pinning), red =
+// short-gamma (price-accelerating). Windowed to ±15% of spot. This is the
+// market-structure view a desk watches for pin risk and gamma flips.
+function renderHeat(host,rebuild){
+  if(rebuild){
+    host.innerHTML=''+
+      '<div class="heatwrap">'+
+        '<div class="heath" id="heath">🔥 Dealer Gamma Exposure — '+st.chain.symbol+'</div>'+
+        '<div style="padding-bottom:6px"><span class="seg" id="hseg">'+
+          '<button data-m="net">Net GEX</button><button data-m="call">Call γ</button><button data-m="put">Put γ</button></span></div>'+
+        '<div class="kpi" id="hlev">'+
+          kpi('Spot','h_spot','b')+kpi('Gamma Flip','h_flip','y')+kpi('Net GEX /1%','h_gex','')+
+          kpi('Max Pain','h_mp','y')+kpi('Exp. Move ±1σ','h_em','b')+kpi('Regime','h_reg','')+
+        '</div>'+
+        '<div id="heatplot" style="flex:1;min-height:0"></div>'+
+        '<div class="det" id="hdet" style="display:none"></div>'+
+      '</div>';
+    var seg=document.getElementById('hseg');
+    if(seg) seg.addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b||!b.dataset.m) return;
+      st.heatMode=b.dataset.m; drawHeatPlot();
+    });
+  }
+  var hh=document.getElementById('heath');
+  if(hh) hh.innerHTML='🔥 Dealer Gamma Exposure — '+st.chain.symbol+
+    ' <small>strike × expiry · $MM / 1% · green = long γ, red = short γ · spot '+(st.spot?st.spot.toFixed(2):'—')+'</small>';
+  setHeatLevels();
+  drawHeatPlot();
+}
+
+function drawHeatPlot(){
+  var el=document.getElementById('heatplot'); if(!el) return;
+  var seg=document.getElementById('hseg');
+  if(seg) Array.prototype.forEach.call(seg.children,function(b){b.className=(b.dataset.m===st.heatMode)?'on':'';});
+  var label=st.heatMode==='call'?'Call γ':st.heatMode==='put'?'Put γ':'Net GEX';
+  var h=buildGexHeat(st.chain,st.spot,st.heatMode);
+  if(!h.y.length||!h.x.length){Plotly.purge(el); el.innerHTML='<div class="em">Not enough gamma data to map</div>'; return;}
+
+  var flat=[]; h.z.forEach(function(row){row.forEach(function(v){if(v!=null) flat.push(Math.abs(v));});});
+  flat.sort(function(a,b){return a-b;});
+  var M=flat.length?(flat[Math.floor(flat.length*0.95)]||1):1; if(!M) M=1;
+
+  var trace={type:'heatmap',x:h.x,y:h.y,z:h.z,zmid:0,zmin:-M,zmax:M,
+    colorscale:[[0,'#b91c1c'],[0.5,'#0b0d12'],[1,'#15803d']],
+    hoverongaps:false,xgap:1,ygap:1,
+    colorbar:{title:{text:'$MM',font:{color:'#94a3b8',size:9}},tickfont:{color:'#64748b',size:9},thickness:10,len:.9},
+    hovertemplate:'Strike %{y}<br>Exp %{x}<br>'+label+' %{z:.1f} $MM<extra></extra>'};
+  var struct=computeStructure();
+  var shapes=[];
+  if(st.spot) shapes.push({type:'line',x0:-0.5,x1:h.x.length-0.5,y0:st.spot,y1:st.spot,line:{color:'#38bdf8',width:1,dash:'dot'}});
+  if(struct.flip!=null) shapes.push({type:'line',x0:-0.5,x1:h.x.length-0.5,y0:struct.flip,y1:struct.flip,line:{color:'#a855f7',width:1,dash:'dot'}});
+  var layout={
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{l:54,r:10,t:6,b:70},
+    xaxis:{color:'#64748b',tickfont:{color:'#64748b',size:9},tickangle:-40,type:'category'},
+    yaxis:{title:{text:'Strike · ┄spot ┄flip',font:{size:9}},color:'#64748b',tickfont:{color:'#64748b',size:9}},
+    shapes:shapes, uirevision:'heat'
+  };
+  Plotly.react(el,[trace],layout,PLOT);
+  if(el.removeAllListeners) el.removeAllListeners('plotly_click');
+  if(el.on) el.on('plotly_click',function(ev){
+    var p=ev&&ev.points&&ev.points[0]; if(!p) return;
+    var d=document.getElementById('hdet'); if(!d) return;
+    d.style.display='flex';
+    d.innerHTML='<b>'+p.y+'</b><span>'+esc(String(p.x))+'</span><span>'+label+': <b>'+(p.z!=null?(+p.z).toFixed(2):'—')+'</b> $MM/1%</span>'+
+      '<span class="cx" onclick="this.parentNode.style.display=\'none\'">✕</span>';
+  });
+}
+// Populate the HeatSeeker key-levels strip from computeStructure().
+function setHeatLevels(){
+  var s=computeStructure();
+  setKpi('h_spot', s.spot?s.spot.toFixed(2):'—');
+  setKpi('h_flip', s.flip!=null?s.flip.toFixed(2):'—');
+  setKpi('h_gex', fmtUSD(s.net));
+  setKpi('h_mp', s.maxpain!=null?(s.maxpain%1===0?s.maxpain.toFixed(0):s.maxpain.toFixed(1)):'—');
+  setKpi('h_em', s.em!=null?('±'+s.em.toFixed(1)+(s.dte!=null?' · '+Math.round(s.dte)+'d':'')):'—');
+  var gx=document.getElementById('kp_h_gex'); if(gx) gx.className='kpv '+(s.net>=0?'g':'r');
+  var reg=document.getElementById('kp_h_reg');
+  if(reg){
+    if(s.regime==='long'){reg.textContent='Long γ'; reg.className='kpv g';}
+    else if(s.regime==='short'){reg.textContent='Short γ'; reg.className='kpv r';}
+    else {reg.textContent='—'; reg.className='kpv';}
+  }
+}
+function buildGexHeat(chain,spot,mode){
+  var exps=(chain.chain||[]).slice(0,18);
+  var lo=spot?spot*0.85:-Infinity, hi=spot?spot*1.15:Infinity;
+  var S=spot||0, sc=100*S*S*0.01/1e6;
+  var set={};
+  exps.forEach(function(e){(e.strikes||[]).forEach(function(s){var k=s[0]; if(k>=lo&&k<=hi) set[k]=true;});});
+  var strikes=Object.keys(set).map(Number).sort(function(a,b){return a-b;});
+  var maps=exps.map(function(e){var m={}; (e.strikes||[]).forEach(function(s){m[s[0]]=s;}); return m;});
+  var z=strikes.map(function(k){
+    return maps.map(function(m){
+      var s=m[k]; if(!s) return null;
+      var c=callVals(s), p=putVals(s);
+      var cg=num(c[IDX.GAMMA])*num(c[IDX.OI]), pg=num(p[IDX.GAMMA])*num(p[IDX.OI]);
+      var g = mode==='call' ? cg*sc : mode==='put' ? -pg*sc : (cg-pg)*sc;
+      return isFinite(g)?g:null;
+    });
+  });
+  return {x:exps.map(function(e){return e.expiration;}),y:strikes,z:z};
+}
+
+// ---- Derived market structure (computed by us from the live chain) --------
+// Net dealer GEX per strike, aggregated across ALL expirations ($ per 1% move).
+function aggGex(chain,spot){
+  var agg={};
+  (chain.chain||[]).forEach(function(e){(e.strikes||[]).forEach(function(s){
+    var k=s[0],c=callVals(s),p=putVals(s);
+    var g=(num(c[IDX.GAMMA])*num(c[IDX.OI]) - num(p[IDX.GAMMA])*num(p[IDX.OI]))*100*spot*spot*0.01;
+    if(isFinite(g)) agg[k]=(agg[k]||0)+g;
+  });});
+  return agg;
+}
+// Gamma flip = strike where cumulative net GEX (low→high) crosses zero (interpolated).
+function gammaFlip(agg){
+  var ks=Object.keys(agg).map(Number).sort(function(a,b){return a-b;});
+  var cum=0,prevCum=null,prevK=null;
+  for(var i=0;i<ks.length;i++){
+    cum+=agg[ks[i]];
+    if(prevCum!=null && ((prevCum<0&&cum>=0)||(prevCum>0&&cum<=0)) && cum!==prevCum){
+      var t=prevCum/(prevCum-cum); return prevK+(ks[i]-prevK)*t;
+    }
+    prevCum=cum; prevK=ks[i];
+  }
+  return null;
+}
+// Max pain (one expiry): strike minimising total in-the-money payout to holders.
+function maxPain(exp){
+  var rows=expData(exp).filter(function(r){return r.cOI||r.pOI;});
+  if(!rows.length) return null;
+  var best=null,bestPay=Infinity;
+  rows.forEach(function(t){
+    var K=t.strike,pay=0;
+    rows.forEach(function(r){
+      if(r.strike<K) pay+=(K-r.strike)*r.cOI;
+      else if(r.strike>K) pay+=(r.strike-K)*r.pOI;
+    });
+    if(pay<bestPay){bestPay=pay; best=K;}
+  });
+  return best;
+}
+function dteOf(expStr){
+  if(!expStr) return null;
+  var d=new Date(expStr+'T16:00:00Z'), now=new Date();
+  return Math.max((d-now)/86400000, 0);
+}
+// Structure summary for the key-levels strip on HeatSeeker.
+function computeStructure(){
+  var spot=st.spot||0, exp=st.chain.chain[curExpIdx()];
+  var agg=aggGex(st.chain,spot);
+  var net=0; Object.keys(agg).forEach(function(k){net+=agg[k];});
+  var flip=gammaFlip(agg);
+  var mp=exp?maxPain(exp):null;
+  var iv=exp?atmIvOf(exp,spot):null;
+  var dte=exp?dteOf(exp.expiration):null;
+  var em=(iv!=null&&dte!=null&&spot)?spot*iv*Math.sqrt(dte/365):null;
+  return {spot:spot,net:net,flip:flip,maxpain:mp,iv:iv,dte:dte,em:em,
+          regime:spot?(net>=0?'long':'short'):null};
+}
+
+// ============================== TAB 3: Trinity =============================
+// Three complementary VOLATILITY lenses (no overlap with flow/gamma tabs):
+//  1) IV skew/smile (selected expiry)
+//  2) ATM IV term structure (contango/backwardation across expiries)
+//  3) 25Δ risk-reversal term structure (put-vs-call skew steepness by expiry)
+function renderTrinity(host,rebuild){
+  var exp=st.chain.chain[curExpIdx()];
+  if(rebuild){
+    host.innerHTML=''+
+      '<div class="trinity">'+
+        '<div class="tcell"><div class="tch">IV Skew <small>'+(exp?exp.expiration:'')+'</small></div><div class="tcb" id="tri1"></div></div>'+
+        '<div class="tcell"><div class="tch">ATM IV Term Structure <small>vol vs expiry</small></div><div class="tcb" id="tri2"></div></div>'+
+        '<div class="tcell"><div class="tch">25Δ Risk Reversal <small>put−call skew by expiry</small></div><div class="tcb" id="tri3"></div></div>'+
+      '</div>';
+  }
+  drawSkew(exp); drawTerm(); drawRR();
+}
+
+function drawSkew(exp){
+  var el=document.getElementById('tri1'); if(!el) return;
+  var rows=nearSpot(expData(exp),st.spot,0.15).filter(function(r){return r.cIV!=null||r.pIV!=null;});
+  if(!rows.length){Plotly.purge(el); el.innerHTML='<div class="em">No IV here</div>'; return;}
+  var strikes=rows.map(function(r){return r.strike;});
+  // Front expiry: full call & put smile (shows put-skew directly).
+  var traces=[
+    {x:strikes,y:rows.map(function(r){return r.cIV!=null?r.cIV*100:null;}),type:'scatter',mode:'lines',name:'Call IV',line:{color:'#34d399',width:2.5},connectgaps:true},
+    {x:strikes,y:rows.map(function(r){return r.pIV!=null?r.pIV*100:null;}),type:'scatter',mode:'lines',name:'Put IV',line:{color:'#f43f5e',width:2.5},connectgaps:true}
+  ];
+  // Next 2 expiries: faint mid-IV smiles for tenor context.
+  var idx=curExpIdx(), faint=['#7dd3fc','#c4b5fd'];
+  for(var j=1;j<=2;j++){
+    var e2=st.chain.chain[idx+j]; if(!e2) break;
+    var r2=nearSpot(expData(e2),st.spot,0.15).filter(function(r){return r.cIV!=null||r.pIV!=null;});
+    if(!r2.length) continue;
+    traces.push({x:r2.map(function(r){return r.strike;}),
+      y:r2.map(function(r){var iv=[r.cIV,r.pIV].filter(function(v){return v!=null;}); return iv.length?(iv.reduce(function(a,b){return a+b;},0)/iv.length)*100:null;}),
+      type:'scatter',mode:'lines',name:e2.expiration.slice(5),line:{color:faint[j-1],width:1,dash:'dot'},opacity:.55,connectgaps:true});
+  }
+  var layout={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:40,r:8,t:6,b:28},
+    xaxis:{color:'#64748b',tickfont:{color:'#64748b',size:9},gridcolor:'#1e293b'},
+    yaxis:{title:{text:'IV %',font:{size:9}},color:'#64748b',tickfont:{color:'#64748b',size:9},gridcolor:'#1e293b'},
+    legend:{orientation:'h',y:1.12,font:{size:8}},hovermode:'x unified',
+    shapes: st.spot?[{type:'line',x0:st.spot,x1:st.spot,y0:0,y1:1,yref:'paper',line:{color:'#38bdf8',width:1,dash:'dot'}}]:[],uirevision:'skew'};
+  Plotly.react(el,traces,layout,PLOT);
+}
+
+// ATM IV (mean of call/put IV at nearest-spot strike) across expirations.
+function atmIvOf(exp,spot){
+  if(!spot) return null;            // without spot there is no "at-the-money" anchor
+  var best=null,gap=Infinity;
+  expData(exp).forEach(function(r){
+    var ivs=[r.cIV,r.pIV].filter(function(v){return v!=null;});
+    if(!ivs.length) return;
+    var g=Math.abs((r.strike||0)-spot);
+    if(g<gap){gap=g; best=ivs.reduce(function(a,b){return a+b;},0)/ivs.length;}
+  });
+  return best;
+}
+function drawTerm(){
+  var el=document.getElementById('tri2'); if(!el) return;
+  var exps=(st.chain.chain||[]).slice(0,16);
+  var pts=exps.map(function(e){return {exp:e.expiration, iv:atmIvOf(e,st.spot)};}).filter(function(d){return d.iv!=null;});
+  if(!pts.length){Plotly.purge(el); el.innerHTML='<div class="em">No IV here</div>'; return;}
+  var trace={x:pts.map(function(d){return d.exp;}),y:pts.map(function(d){return d.iv*100;}),
+    type:'scatter',mode:'lines+markers',line:{color:'#a855f7',width:2},marker:{size:5,color:'#a855f7'},
+    hovertemplate:'%{x}<br>ATM IV %{y:.1f}%<extra></extra>'};
+  var layout={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:38,r:8,t:6,b:64},
+    xaxis:{color:'#64748b',tickfont:{color:'#64748b',size:8},tickangle:-40,type:'category'},
+    yaxis:{title:{text:'ATM IV %',font:{size:9}},color:'#64748b',tickfont:{color:'#64748b',size:9},gridcolor:'#1e293b'},uirevision:'term'};
+  Plotly.react(el,[trace],layout,PLOT);
+}
+
+// 25-delta risk reversal per expiry: IV(put@Δ≈-0.25) − IV(call@Δ≈+0.25), in vol
+// points. Positive = downside skew (puts bid), the equity-index norm.
+function rrOf(exp){
+  var bestC=null,bestP=null,gc=Infinity,gp=Infinity;
+  expData(exp).forEach(function(r){
+    if(r.cIV!=null&&r.cD!=null){var d=Math.abs(r.cD-0.25); if(d<gc){gc=d; bestC=r.cIV;}}
+    if(r.pIV!=null&&r.pD!=null){var e=Math.abs(r.pD+0.25); if(e<gp){gp=e; bestP=r.pIV;}}
+  });
+  return (bestC!=null&&bestP!=null)?(bestP-bestC)*100:null;
+}
+function drawRR(){
+  var el=document.getElementById('tri3'); if(!el) return;
+  var exps=(st.chain.chain||[]).slice(0,16);
+  var pts=exps.map(function(e){return {exp:e.expiration, rr:rrOf(e)};}).filter(function(d){return d.rr!=null;});
+  if(!pts.length){Plotly.purge(el); el.innerHTML='<div class="em">No skew data here</div>'; return;}
+  var trace={x:pts.map(function(d){return d.exp;}),y:pts.map(function(d){return d.rr;}),
+    type:'bar',marker:{color:pts.map(function(d){return d.rr>=0?'rgba(244,63,94,0.7)':'rgba(52,211,153,0.7)';})},
+    hovertemplate:'%{x}<br>25Δ RR %{y:.1f} vol pts<extra></extra>'};
+  var layout={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:36,r:8,t:6,b:64},
+    xaxis:{color:'#64748b',tickfont:{color:'#64748b',size:8},tickangle:-40,type:'category'},
+    yaxis:{title:{text:'vol pts',font:{size:9}},color:'#64748b',tickfont:{color:'#64748b',size:9},zeroline:true,zerolinecolor:'#475569',gridcolor:'#1e293b'},uirevision:'rr'};
+  Plotly.react(el,[trace],layout,PLOT);
+}
+
+// ---- Init & scheduler -----------------------------------------------------
+// One 5s tick decides what is actually DUE instead of blind dual timers:
+// the chain refreshes only when the current ticker's cache has aged past
+// CHAIN_TTL, the scan only while the Flow tab is showing, and nothing at all
+// while the preview is hidden or a 429 cool-down is active.
+function tick(){
+  if(document.hidden) return;
+  var now=Date.now();
+  if(now<rlUntil){ setStatus(); return; }
+  var c=chainCache[st.tk];
+  if((!c||now-c.at>=CHAIN_TTL)&&!failBlocked('chain:'+st.tk)) loadData();
+  if(st.tab==='flow'&&(!scanCache.at||now-scanCache.at>=SCAN_TTL)&&!failBlocked('scan')) loadScan();
+}
+shell();
+tick();
+setInterval(tick,5000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
 })();
 </script>
 </body>
