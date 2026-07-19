@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Prism · Option Flow & Gamma</title>
-  <meta name="description" content="Cross-symbol unusual-flow scanner and dealer-gamma heatmap over a live option chain. Two lenses: FlowSeeker Pro (vol/OI score + per-ticker drill-down) and HeatSeeker (dealer GEX by strike × expiry).">
+  <meta name="description" content="PRISM — cross-symbol option-flow scanner and dealer-gamma exposure surface over a live option chain. Two lenses: LiveTape (vol/OI score, Time/Entry per row, per-ticker drill-down) and GammaMap (dealer GEX strike×expiry with top strikes, IV skew, per-expiry contribution bars).">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='%230b0d12'/><polygon points='20,12 8,52 32,52' fill='none' stroke='%23cbd3df' stroke-width='2.5' stroke-linejoin='round'/><line x1='32' y1='52' x2='58' y2='42' stroke='%2334d399' stroke-width='3' stroke-linecap='round'/><line x1='32' y1='52' x2='58' y2='52' stroke='%23fbbf24' stroke-width='3' stroke-linecap='round'/><line x1='32' y1='52' x2='58' y2='62' stroke='%23f43f5e' stroke-width='3' stroke-linecap='round'/></svg>">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
   <style>
@@ -40,6 +40,16 @@
     .flt.unusual{background:rgba(168,85,247,.15);color:#a855f7}
     .flt.regular{background:rgba(120,120,120,.15);color:#888}
     .sb2{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#0d0f14;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#7a8599;flex-shrink:0}
+    /* Top-strike sidebar + per-expiry contribution bar (GammaMap) */
+    .pinstrip{display:flex;gap:6px;padding:4px 0 6px;flex-shrink:0}
+    .pincol{flex:1;background:#11141a;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:6px 8px;min-width:0}
+    .pinh{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:#7a8599;margin-bottom:4px}
+    .pinrow{display:flex;justify-content:space-between;font-size:10px;padding:1px 0;color:#cbd3df;font-variant-numeric:tabular-nums;gap:8px}
+    .pinrow .k{font-weight:700;color:#e6e8ee}
+    .pinrow.s .k{color:#fda4af}
+    .pinrow.l .v{color:#34d399}
+    .pinrow.s .v{color:#fb7185}
+    .heath{font-size:11px;font-weight:700;color:#cbd3df;padding-bottom:6px;display:flex;align-items:baseline;gap:8px}
     .sd{width:6px;height:6px;border-radius:50%;background:#22c55e}
     .sd.ld{background:#eab308;animation:p 1s infinite}
     .sd.er{background:#ef4444}
@@ -62,7 +72,7 @@
     .det b{color:#e6e8ee;font-weight:700}
     .det .cx{color:#7a8599;cursor:pointer;margin-left:auto;font-weight:700}
     .det .cl{color:#34d399}.det .pu{color:#f43f5e}
-    /* BladeMap Flow Scanner (FlowSeeker Pro hero) */
+    /* LiveTape scanner (cross-symbol flow + per-ticker drill-down) */
     .scanwrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:10px;box-sizing:border-box;gap:8px}
     .scanbar{display:flex;gap:8px;flex-shrink:0}
     .skpi{flex:1;background:#11141a;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 10px}
@@ -113,7 +123,10 @@ var FIELDS=['expiration_date','strike_price','contract_type','implied_volatility
 // Each per-side value array is in full FIELDS order, so this map indexes both
 // call_vals and put_vals. Verified against the live cvserver chain response.
 var IDX={EXP:0,STRIKE:1,TYPE:2,IV:3,DELTA:4,GAMMA:5,THETA:6,VEGA:7,BID:8,ASK:9,MID:10,OI:11,VOL:12,SPOT:13};
-var TABS=[{id:'flow',name:'⚡ FlowSeeker Pro'},{id:'heat',name:'🔥 HeatSeeker'}];
+// Two product lenses. Tab IDs are stable (used by router code); only the
+// display name carries the brand rename. LiveTape ≡ cross-symbol flow scan
+// + per-ticker drill-down. GammaMap ≡ dealer-gamma exposure surface.
+var TABS=[{id:'flow',name:'⚡ LiveTape'},{id:'heat',name:'🔥 GammaMap'}];
 
 var st={tk:'SPY',tab:'flow',chain:null,chainTk:'',spot:0,ld:false,er:null,last:'',flowType:'all',flowMinOI:0,heatMode:'net',
   scan:[],scanAt:'',scanSort:{key:'score',dir:'desc'},scanType:'all',scanMinVol:0,scanMinScore:0,scanQ:''};
@@ -179,7 +192,7 @@ function shell(){
         '<div class="fs"><div class="fl">Expiration</div>'+
           '<select class="fs2" id="ef" style="width:100%"><option value="0">First</option></select></div>'+
         '<div class="hint">Both tabs read the same live option chain for the selected ticker. '+
-          'Expiration drives FlowSeeker’s drill-down view; HeatSeeker maps the whole surface.</div>'+
+          'Expiration drives LiveTape’s drill-down view; GammaMap scans the whole surface.</div>'+
       '</div>'+
       '<div class="ct"><div id="content"><div class="em">Loading '+st.tk+' chain…</div></div></div>'+
     '</div>'+
@@ -237,7 +250,7 @@ function setStatus(){
 
 // ---- Shared fetch layer (every tab pulls through here) --------------------
 // One pipe to cvserver for the whole app. A TTL cache + in-flight dedupe means
-// HeatSeeker and the Flow drill-down share ONE chain request per
+// LiveTape and the GammaMap heatmap share ONE chain request per
 // ticker per CHAIN_TTL (tab switches and repeat chip clicks are free), and the
 // cross-symbol scan polls only while the Flow tab is actually showing. The
 // feed is snapshot data (OI / day_volume / greeks — no tick tape), so 2–3 min
@@ -314,7 +327,7 @@ async function loadData(){
     if(myId!==reqSeq) return;                 // superseded by a newer load
     st.chain=d; st.chainTk=st.tk; st.spot=deriveSpot(d);
     // Cross-symbol flow now lives in the BladeMap scanner (loadScan); the
-    // per-ticker chain still drives the drill-down chart and HeatSeeker.
+    // per-ticker chain still drives the drill-down chart and GammaMap.
     populateExpiry();
     var at=chainCache[st.tk]?chainCache[st.tk].at:Date.now();
     st.last=new Date(at).toLocaleTimeString();
@@ -363,7 +376,7 @@ function renderActiveTab(){
   else el.innerHTML='<div class="em">Unknown tab.</div>';
 }
 
-// ============================ TAB 1: FlowSeeker Pro =========================
+// ============================ TAB 1: LiveTape =============================
 // BladeMap-style institutional flow scanner (ported from the cv-apps/screener
 // blademap build) — cross-symbol, scored, sortable. Built entirely on LIVE
 // cvserver data: day_volume-vs-OI is the unusual-activity core signal. This
@@ -455,10 +468,15 @@ function scoreGrade(s){ return s>=80?'crit':s>=65?'high':s>=50?'elev':'norm'; }
 async function loadScan(){
   try{
     var rows=await fetchScan();
+    // HH:MM:SS local stamp of THIS scan fetch — every row in a single
+    // pass carries the same value (the screen feed refreshes atomically),
+    // so a row's Time col tells you exactly how fresh its vol/OI are.
+    var fetchedAt=new Date(scanCache.at||Date.now()).toLocaleTimeString();
     st.scan=rows.map(function(r){
       var vol=num(r[5]), oi=num(r[6]), strike=num(r[3]);
       var o={under:r[0],contract:r[1],type:r[2],strike:strike,exp:r[4],vol:vol,oi:oi,
-             iv:r[7],delta:r[8],spot:num(r[9]),volOI:oi>0?vol/oi:(vol>0?99:0),notional:vol*100*strike};
+             iv:r[7],delta:r[8],spot:num(r[9]),volOI:oi>0?vol/oi:(vol>0?99:0),
+             notional:vol*100*strike,fetchedAt:fetchedAt};
       o.dte=bizDTE(r[4]); o.score=scanScore(o); o.ftype=scanType(o);
       return o;
     });
@@ -497,9 +515,23 @@ function scanFiltered(){
   return rows;
 }
 
+// SCAN_COLS drives both renderScanner's body and the sortable header. LiveTape
+// surfaces two extra columns that the screen feed has on every row: the
+// snapshot timestamp the row was fetched at ("Time") and the underlying ticker
+// price at fetch ("Spot"/Entry). Both are derived in loadScan so the sort
+// handler can use them as first-class keys without ad-hoc stringification.
+// SCAN_COLS drives both renderScanner's body and the sortable header. LiveTape
+// surfaces two extra columns that the screen feed has on every row: the
+// snapshot timestamp the row was fetched at ("Snapshot" — all rows in a
+// single fetch share the same value because the screen feed refreshes
+// atomically) and the underlying ticker price at fetch ("Spot"/Entry). We
+// pass the snapshot column header as "Snapshot" rather than "Time" to
+// avoid implying per-trade granularity this feed doesn't carry.
 var SCAN_COLS=[
   {k:'score',t:'Score',l:false},{k:'under',t:'Ticker',l:true},{k:'type',t:'C/P',l:true},
-  {k:'strike',t:'Strike',l:false},{k:'dte',t:'DTE',l:false},{k:'vol',t:'Volume',l:false},
+  {k:'strike',t:'Strike',l:false},{k:'dte',t:'DTE',l:false},
+  {k:'fetchedAt',t:'Snapshot',l:false},{k:'spot',t:'Spot',l:false},
+  {k:'vol',t:'Volume',l:false},
   {k:'oi',t:'OI',l:false},{k:'volOI',t:'Vol/OI',l:false},{k:'notional',t:'Notional',l:false},
   {k:'iv',t:'IV',l:false},{k:'ftype',t:'Flow',l:true},{k:'lean',t:'Lean',l:true}
 ];
@@ -526,6 +558,8 @@ function renderScanner(){
       '<td class="l"><span class="'+(isCall?'tcall':'tput')+'">'+(isCall?'CALL':'PUT')+'</span></td>'+
       '<td>'+strk+'</td>'+
       '<td>'+(r.dte==null?'—':r.dte+'d')+'</td>'+
+      '<td class="sub" style="font-variant-numeric:tabular-nums">'+esc(r.fetchedAt||'—')+'</td>'+
+      '<td>'+(r.spot>0?r.spot.toFixed(2):'—')+'</td>'+
       '<td>'+fmtK(r.vol)+'</td>'+
       '<td>'+fmtK(r.oi)+'</td>'+
       '<td>'+(r.volOI>=99?'99+':r.volOI.toFixed(1))+'x</td>'+
@@ -648,7 +682,7 @@ function computeKpis(exp,spot){
 function kpi(label,id,cls){return '<div class="kp"><div class="kpl">'+label+'</div><div class="kpv '+(cls||'')+'" id="kp_'+id+'">—</div></div>';}
 function setKpi(id,v){var e=document.getElementById('kp_'+id); if(e) e.textContent=v;}
 
-// ============================ TAB 2: HeatSeeker ============================
+// ============================ TAB 2: GammaMap =============================
 // Dealer gamma-exposure (GEX) heatmap: strikes (rows) × expirations (cols),
 // colour = net dealer gamma per cell ≈ (callΓ·callOI − putΓ·putOI)·100·S²·0.01,
 // in $MM per 1% move. Green = long-gamma (price-stabilising / pinning), red =
@@ -663,9 +697,14 @@ function renderHeat(host,rebuild){
           '<button data-m="net">Net GEX</button><button data-m="call">Call γ</button><button data-m="put">Put γ</button></span></div>'+
         '<div class="kpi" id="hlev">'+
           kpi('Spot','h_spot','b')+kpi('Gamma Flip','h_flip','y')+kpi('Net GEX /1%','h_gex','')+
-          kpi('Max Pain','h_mp','y')+kpi('Exp. Move ±1σ','h_em','b')+kpi('Regime','h_reg','')+
+          kpi('Max Pain','h_mp','y')+kpi('IV Skew (C–P)','h_skew','y')+kpi('Regime','h_reg','')+
+        '</div>'+
+        '<div class="pinstrip">'+
+          '<div class="pincol"><div class="pinh">Top Long-γ Strikes</div><div id="pinlong"></div></div>'+
+          '<div class="pincol"><div class="pinh">Top Short-γ Strikes</div><div id="pinshort"></div></div>'+
         '</div>'+
         '<div id="heatplot" style="flex:1;min-height:0"></div>'+
+        '<div id="heatexp" style="height:118px;flex-shrink:0;display:flex;flex-direction:column"></div>'+
         '<div class="det" id="hdet" style="display:none"></div>'+
       '</div>';
     var seg=document.getElementById('hseg');
@@ -678,7 +717,9 @@ function renderHeat(host,rebuild){
   if(hh) hh.innerHTML='🔥 Dealer Gamma Exposure — '+st.chain.symbol+
     ' <small>strike × expiry · $MM / 1% · green = long γ, red = short γ · spot '+(st.spot?st.spot.toFixed(2):'—')+'</small>';
   setHeatLevels();
+  renderTopStrikes();
   drawHeatPlot();
+  drawExpBars();
 }
 
 function drawHeatPlot(){
@@ -693,11 +734,13 @@ function drawHeatPlot(){
   flat.sort(function(a,b){return a-b;});
   var M=flat.length?(flat[Math.floor(flat.length*0.95)]||1):1; if(!M) M=1;
 
-  var trace={type:'heatmap',x:h.x,y:h.y,z:h.z,zmid:0,zmin:-M,zmax:M,
+  var trace={type:'heatmap',x:h.x,y:h.y,z:h.z,customdata:h.cd,
+    zmid:0,zmin:-M,zmax:M,
     colorscale:[[0,'#b91c1c'],[0.5,'#0b0d12'],[1,'#15803d']],
     hoverongaps:false,xgap:1,ygap:1,
     colorbar:{title:{text:'$MM',font:{color:'#94a3b8',size:9}},tickfont:{color:'#64748b',size:9},thickness:10,len:.9},
-    hovertemplate:'Strike %{y}<br>Exp %{x}<br>'+label+' %{z:.1f} $MM<extra></extra>'};
+    hovertemplate:'<b>K %{y}</b> · %{x}<br>'+label+
+      ': %{z:+.2f} $MM/1%<br>%{customdata}<extra></extra>'};
   var struct=computeStructure();
   var shapes=[];
   if(st.spot) shapes.push({type:'line',x0:-0.5,x1:h.x.length-0.5,y0:st.spot,y1:st.spot,line:{color:'#38bdf8',width:1,dash:'dot'}});
@@ -719,14 +762,18 @@ function drawHeatPlot(){
       '<span class="cx" onclick="this.parentNode.style.display=\'none\'">✕</span>';
   });
 }
-// Populate the HeatSeeker key-levels strip from computeStructure().
+// Populate the GammaMap key-levels strip from computeStructure().
 function setHeatLevels(){
   var s=computeStructure();
   setKpi('h_spot', s.spot?s.spot.toFixed(2):'—');
   setKpi('h_flip', s.flip!=null?s.flip.toFixed(2):'—');
   setKpi('h_gex', fmtUSD(s.net));
   setKpi('h_mp', s.maxpain!=null?(s.maxpain%1===0?s.maxpain.toFixed(0):s.maxpain.toFixed(1)):'—');
-  setKpi('h_em', s.em!=null?('±'+s.em.toFixed(1)+(s.dte!=null?' · '+Math.round(s.dte)+'d':'')):'—');
+  setKpi('h_skew', s.skew!=null?((s.skew>0?'+':'')+(s.skew*100).toFixed(1)+'%'):'—');
+  // Color the skew: positive (calls pricier = demand for upside) y/amber;
+  // negative (puts pricier = bearish hedging demand) r/rose.
+  var sk=document.getElementById('kp_h_skew');
+  if(sk && s.skew!=null) sk.className='kpv '+(s.skew>=0?'y':'r');
   var gx=document.getElementById('kp_h_gex'); if(gx) gx.className='kpv '+(s.net>=0?'g':'r');
   var reg=document.getElementById('kp_h_reg');
   if(reg){
@@ -752,7 +799,27 @@ function buildGexHeat(chain,spot,mode){
       return isFinite(g)?g:null;
     });
   });
-  return {x:exps.map(function(e){return e.expiration;}),y:strikes,z:z};
+  // Per-cell IV/OI carried as a single pre-formatted string per cell, so
+  // Plotly's hovertemplate can use %{customdata} once. Shape mirrors z
+  // (null where the strike is missing for this expiry). Format:
+  //   "IV 5.2% · OI 10,234 · C 5.0% · P 4.5%"
+  // Splitting into nested-array customdata and indexing %{customdata[N]}
+  // is fragile across Plotly client builds; this avoids that dependability
+  // hole and keeps the per-cell payload a single human-readable line.
+  function fmtPctIV(v){return v!=null?(v*100).toFixed(1)+'%':'—';}
+  var cd=strikes.map(function(k){
+    return maps.map(function(m){
+      var s=m[k]; if(!s) return null;
+      var c=callVals(s),p=putVals(s);
+      var ci=c[IDX.IV],pi=p[IDX.IV];
+      var oi=num(c[IDX.OI])+num(p[IDX.OI]);
+      return 'IV '+fmtPctIV(ci!=null&&pi!=null?(ci+pi)/2:null)
+        +' · OI '+oi.toLocaleString()
+        +' · C '+fmtPctIV(ci)
+        +' · P '+fmtPctIV(pi);
+    });
+  });
+  return {x:exps.map(function(e){return e.expiration;}),y:strikes,z:z,cd:cd};
 }
 
 // ---- Derived market structure (computed by us from the live chain) --------
@@ -799,8 +866,32 @@ function dteOf(expStr){
   var d=new Date(expStr+'T16:00:00Z'), now=new Date();
   return Math.max((d-now)/86400000, 0);
 }
-// Structure summary for the key-levels strip on HeatSeeker.
+// Structure summary for the key-levels strip on GammaMap.
 // ATM IV: nearest-to-spot strike, mean of call/put IV for that expiry.
+// IV Skew = call_iv@+5% − put_iv@−5% (sign tells you whether calls or puts
+// are pricier market-wide on this name; magnitude is the curve steepness).
+// Computed per-expiry then averaged over non-zero expiries so the KPI stays
+// meaningful as the user flips through short-dated weeks vs long-dated LEAPs.
+function skewAt(exp,spot){
+  if(!exp||!spot) return null;
+  var lo=spot*0.95, hi=spot*1.05;
+  var cl=null,pu=null,cDst=Infinity,pDst=Infinity;
+  (exp.strikes||[]).forEach(function(s){
+    var k=s[0]; if(k<lo||k>hi) return;
+    var c=callVals(s),p=putVals(s);
+    var cv=c[IDX.IV],pv=p[IDX.IV];
+    if(cv!=null){var d=Math.abs((k-spot)/spot); if(d<cDst){cDst=d; cl=cv;}}
+    if(pv!=null){var d=Math.abs((k-spot)/spot); if(d<pDst){pDst=d; pu=pv;}}
+  });
+  if(cl==null||pu==null) return null;
+  return cl-pu;
+}
+function avgSkew(chain,spot){
+  if(!spot) return null;
+  var sum=0,cnt=0;
+  (chain.chain||[]).forEach(function(e){var s=skewAt(e,spot); if(s!=null){sum+=s; cnt++;}});
+  return cnt?sum/cnt:null;
+}
 function atmIvOf(exp,spot){
   if(!exp) return null;
   var bs=null,bg=Infinity;
@@ -818,8 +909,73 @@ function computeStructure(){
   var iv=exp?atmIvOf(exp,spot):null;
   var dte=exp?dteOf(exp.expiration):null;
   var em=(iv!=null&&dte!=null&&spot)?spot*iv*Math.sqrt(dte/365):null;
-  return {spot:spot,net:net,flip:flip,maxpain:mp,iv:iv,dte:dte,em:em,
+  var skew=avgSkew(st.chain,spot);
+  return {spot:spot,net:net,flip:flip,maxpain:mp,iv:iv,dte:dte,em:em,skew:skew,
           regime:spot?(net>=0?'long':'short'):null};
+}
+// ---- GammaMap widgets (top strikes, per-expiry contribution bars) --------
+// Top-strike sidebar: take the aggregated net GEX dict, return HTML for the
+// top-3 long-γ and top-3 short-γ strikes as compact rows. Long γ = pin /
+// stabilising force (dealers will be buyers on dips). Short γ = accelerant
+// (dealers sell into rallies, buy into sell-offs). Listing both side-by-side
+// is the at-a-glance put/call-style read on dealer positioning.
+function buildTopStrikes(agg,spot){
+  if(!spot) return {long:'<div class="sub" style="padding:6px">— no spot —</div>',short:'<div class="sub" style="padding:6px">—</div>'};
+  var arr=Object.keys(agg).map(function(k){return {k:Number(k),g:agg[k]};}).filter(function(x){return isFinite(x.g);});
+  if(!arr.length) return {long:'<div class="sub" style="padding:6px">— empty —</div>',short:'<div class="sub" style="padding:6px">— empty —</div>'};
+  var longs=arr.slice().sort(function(a,b){return b.g-a.g;}).slice(0,3);
+  var shorts=arr.slice().sort(function(a,b){return a.g-b.g;}).slice(0,3);
+  function row(x,sign){
+    var k=x.k%1===0?x.k.toFixed(0):x.k.toFixed(2);
+    var v=(x.g/1e6);
+    var cls=sign?'s':'l';
+    var sign2=x.g>=0?'+':'';
+    return '<div class="pinrow '+cls+'"><span class="k">'+k+'</span><span class="v">'+sign2+v.toFixed(1)+'M</span></div>';
+  }
+  return {long:longs.map(function(x){return row(x,0);}).join('')||'<div class="sub" style="padding:6px">—</div>',
+          short:shorts.map(function(x){return row(x,1);}).join('')||'<div class="sub" style="padding:6px">—</div>'};
+}
+function renderTopStrikes(){
+  var ts=buildTopStrikes(aggGex(st.chain,st.spot),st.spot);
+  var pl=document.getElementById('pinlong');
+  var ps=document.getElementById('pinshort');
+  if(pl) pl.innerHTML=ts.long;
+  if(ps) ps.innerHTML=ts.short;
+}
+// Per-expiry contribution bar (drawn under the heatmap): aggregated signed
+// net GEX per expiry, top 8 by absolute size. Shows which week/month is
+// driving the chip-wide gamma picture — useful when 0DTE dominates and the
+// monthly summary hides it.
+function drawExpBars(){
+  var el=document.getElementById('heatexp'); if(!el||!st.chain) return;
+  var exps=st.chain.chain||[]; if(!exps.length){Plotly.purge(el); el.innerHTML='<div class="em">No expiries</div>'; return;}
+  var S=st.spot||0, sc=100*S*S*0.01/1e6;
+  var bars=exps.map(function(e){
+    var net=0; (e.strikes||[]).forEach(function(s){
+      var c=callVals(s),p=putVals(s);
+      var g=(num(c[IDX.GAMMA])*num(c[IDX.OI]) - num(p[IDX.GAMMA])*num(p[IDX.OI]))*sc;
+      if(isFinite(g)) net+=g;
+    });
+    return {n:e.expiration,v:net};
+  }).filter(function(x){return isFinite(x.v)&&x.v!==0;});
+  if(!bars.length){Plotly.purge(el); el.innerHTML='<div class="em">No contribution data</div>'; return;}
+  bars.sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v);}); bars=bars.slice(0,8);
+  var trace={type:'bar',orientation:'h',
+    x:bars.map(function(x){return x.v;}),
+    y:bars.map(function(x){return x.n;}),
+    marker:{color:bars.map(function(v){return v.v>=0?'rgba(52,211,153,.85)':'rgba(244,63,94,.85)';})},
+    text:bars.map(function(v){return (v.v>=0?'+':'')+v.v.toFixed(0);}),
+    textposition:'outside',
+    textfont:{color:'#7a8599',size:9},
+    hovertemplate:'%{y}<br>Net GEX: %{x:+.1f} $MM/1%<extra></extra>'};
+  var layout={
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{l:84,r:46,t:8,b:6},height:118,
+    xaxis:{color:'#475569',zeroline:true,zerolinecolor:'#475569',gridcolor:'#1e293b',tickfont:{color:'#64748b',size:8},title:{text:'$MM / 1%',font:{color:'#7a8599',size:9}}},
+    yaxis:{color:'#64748b',tickfont:{color:'#64748b',size:9},autorange:'reversed'},
+    shapes:[], uirevision:'heat-exp',showlegend:false
+  };
+  Plotly.react(el,[trace],layout,PLOT);
 }
 
 // ---- Init & scheduler -----------------------------------------------------
