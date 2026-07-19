@@ -304,7 +304,7 @@ function fetchScan(){
   noteReq();
   inflight.scan=window.cvApi.screen({
     columns:['underlying_ticker','ticker','contract_type','strike_price','expiration_date','day_volume','open_interest','implied_volatility','delta','underlying_price'],
-    filters:[{field:'day_volume',op:'gt',value:1000}],
+    filters:[{field:'day_volume',op:'gt',value:250}],
     sort:[{field:'day_volume',direction:'desc'}],
     limit:300
   }).then(function(sf){
@@ -516,21 +516,17 @@ function scanFiltered(){
 }
 
 // SCAN_COLS drives both renderScanner's body and the sortable header. LiveTape
-// surfaces two extra columns that the screen feed has on every row: the
-// snapshot timestamp the row was fetched at ("Time") and the underlying ticker
-// price at fetch ("Spot"/Entry). Both are derived in loadScan so the sort
-// handler can use them as first-class keys without ad-hoc stringification.
-// SCAN_COLS drives both renderScanner's body and the sortable header. LiveTape
-// surfaces two extra columns that the screen feed has on every row: the
-// snapshot timestamp the row was fetched at ("Snapshot" — all rows in a
-// single fetch share the same value because the screen feed refreshes
-// atomically) and the underlying ticker price at fetch ("Spot"/Entry). We
-// pass the snapshot column header as "Snapshot" rather than "Time" to
-// avoid implying per-trade granularity this feed doesn't carry.
+// surfaces two display columns derived in loadScan: the underlying ticker
+// price at fetch ("Spot"/Entry) and the underlying's expiry date badge.
+// The screen fetch timestamp (formerly rendered as a "Snapshot" per-row
+// cell) is intentionally NOT a column: every row in a single fetch shares
+// the same value because convexvalue updates the screen feed atomically,
+// so 200 identical cells would be pure noise. The same info is surfaced in
+// the "Refreshed" KPI cell on the stat bar above the table instead.
 var SCAN_COLS=[
   {k:'score',t:'Score',l:false},{k:'under',t:'Ticker',l:true},{k:'type',t:'C/P',l:true},
   {k:'strike',t:'Strike',l:false},{k:'dte',t:'DTE',l:false},
-  {k:'fetchedAt',t:'Snapshot',l:false},{k:'spot',t:'Spot',l:false},
+  {k:'spot',t:'Spot',l:false},
   {k:'vol',t:'Volume',l:false},
   {k:'oi',t:'OI',l:false},{k:'volOI',t:'Vol/OI',l:false},{k:'notional',t:'Notional',l:false},
   {k:'iv',t:'IV',l:false},{k:'ftype',t:'Flow',l:true},{k:'lean',t:'Lean',l:true}
@@ -558,7 +554,6 @@ function renderScanner(){
       '<td class="l"><span class="'+(isCall?'tcall':'tput')+'">'+(isCall?'CALL':'PUT')+'</span></td>'+
       '<td>'+strk+'</td>'+
       '<td>'+(r.dte==null?'—':r.dte+'d')+'</td>'+
-      '<td class="sub" style="font-variant-numeric:tabular-nums">'+esc(r.fetchedAt||'—')+'</td>'+
       '<td>'+(r.spot>0?r.spot.toFixed(2):'—')+'</td>'+
       '<td>'+fmtK(r.vol)+'</td>'+
       '<td>'+fmtK(r.oi)+'</td>'+
@@ -588,7 +583,7 @@ function renderScanStats(rows){
     skpi('Call/Put Vol',tv>0?(cpct+'% / '+(100-cpct)+'%'):'—',cpct>=50?'g':'r')+
     skpi('Unusual (≥2×)',String(unusual),'y')+
     skpi('Top Name',top+(best?' ·'+best:''),'')+
-    skpi('Updated',st.scanAt||'—','');
+    skpi('Refreshed',st.scanAt||'—','');
 }
 function skpi(label,v,cls){return '<div class="skpi"><div class="skl">'+label+'</div><div class="skv '+(cls||'')+'">'+v+'</div></div>';}
 
