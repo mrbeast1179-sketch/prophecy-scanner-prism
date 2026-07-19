@@ -15,6 +15,14 @@ No backend. No build step. The whole app is one HTML file.
 
 [mrbeast1179-sketch.github.io/prophecy-scanner-prism](https://mrbeast1179-sketch.github.io/prophecy-scanner-prism/)
 
+## Releases
+
+Tagged releases live at
+[github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
+The current pin, **v0.2.0** (`PRISM` rebrand + dead-code sweep +
+synthetic-data demo bootstrap), is the immutable artifact visitors
+should grab from there.
+
 ## Run locally
 
 ```bash
