@@ -22,14 +22,19 @@
  * re-includes it so the demo ships at this canonical name; local
  * cvforge runs are tolerated (untracked on-disk content) because
  * they don't reach the served copy on GitHub Pages.
+ *
+ * Script load order: index.html loads this file via a `<script>` tag
+ * in its `<body>`. If you swap the demo for a real convexvalue shim,
+ * place your own `window.cvApi`-preserving `<script>` AFTER this tag
+ * (or replace this file outright). Single-page-app document order
+ * determines which surface wins.
  */
 (function () {
   'use strict';
 
   // \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 gate \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function isDemo() {
-    try { return /[?&]demo=1\b/.test(location.search); }
-    catch (_) { return false; }
+    return /[?&]demo=1\b/.test(location.search);
   }
   if (!isDemo()) return;
 
@@ -52,7 +57,7 @@
     'SPY,2026-07-31,540,P,0.36,-0.74,0.020,-0.007,0.07,1.30,1.50,1.40,2100,1500,580\n' +
     'SPY,2026-07-31,560,C,0.28,0.38,0.024,-0.010,0.08,3.10,3.30,3.20,1850,420,580\n' +
     'SPY,2026-07-31,560,P,0.32,-0.58,0.022,-0.009,0.08,2.50,2.70,2.60,2300,380,580\n' +
-    'SPY,2026-07-31,580,C,0.24,0.55,0.026,-0.012,0.10,5.10,5.30,5.20,1500,4200,580\n' +
+    'SPY,2026-07-31,580,C,0.24,0.55,0.026,-0.012,0.10,5.10,5.30,5.20,1500,5500,580\n' +
     'SPY,2026-07-31,580,P,0.26,-0.45,0.026,-0.012,0.10,4.80,5.00,4.90,1800,180,580\n' +
     'SPY,2026-07-31,600,C,0.26,0.66,0.024,-0.011,0.10,7.40,7.60,7.50,1500,110,580\n' +
     'SPY,2026-07-31,600,P,0.30,-0.32,0.022,-0.009,0.08,6.10,6.30,6.20,1700,80,580\n' +
@@ -94,7 +99,7 @@
     'NVDA,2026-07-31,130,P,0.46,-0.78,0.030,-0.012,0.05,0.70,0.80,0.75,2300,260,145\n' +
     'NVDA,2026-07-31,138,C,0.36,0.36,0.040,-0.016,0.06,1.70,1.90,1.80,1800,180,145\n' +
     'NVDA,2026-07-31,138,P,0.40,-0.62,0.038,-0.014,0.06,1.50,1.70,1.60,2100,140,145\n' +
-    'NVDA,2026-07-31,145,C,0.32,0.55,0.045,-0.020,0.08,2.90,3.10,3.00,1500,3800,145\n' +
+    'NVDA,2026-07-31,145,C,0.32,0.55,0.045,-0.020,0.08,2.90,3.10,3.00,1500,5000,145\n' +
     'NVDA,2026-07-31,145,P,0.34,-0.45,0.045,-0.020,0.08,2.70,2.90,2.80,1700,120,145\n' +
     'NVDA,2026-07-31,152,C,0.34,0.66,0.038,-0.016,0.07,4.20,4.40,4.30,1300,80,145\n' +
     'NVDA,2026-07-31,152,P,0.36,-0.34,0.034,-0.014,0.06,4.00,4.20,4.10,1100,40,145\n' +
@@ -177,7 +182,7 @@
 
   // \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 CSV parser + builders \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function parseRow(line) {
-    var cells = line.split(',');
+    var cells = line.split(',').map(function (c) { return c.trim(); });
     var row = {
       symbol: cells[0],
       exp: cells[1],
