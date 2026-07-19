@@ -23,10 +23,10 @@ cd prophecy-scanner-prism
 open index.html
 ```
 
-A `cv-bootstrap.js` ships at the repo root and exposes
+A `cv-bootstrap.demo.js` ships at the repo root and exposes
 `window.cvApi = { chain, screen }` with **synthetic** data so the demo
 renders populated on a fresh clone — no token, no network calls. To
-swap to live convexvalue data, replace `cv-bootstrap.js` with one that
+swap to live convexvalue data, replace `cv-bootstrap.demo.js` with one that
 POSTs to `https://tap.convexvalue.com/api/data/{chains, screen}` and
 sets the same `window.cvApi` shape.
 
@@ -49,7 +49,7 @@ at runtime (the demo bootstrap in this repo does not contain a token).
 
 ```
 index.html                      The app — JS, CSS, favicon all inline
-cv-bootstrap.js                 Synthetic-data bootstrap exposing
+cv-bootstrap.demo.js                 Synthetic-data bootstrap exposing
                                 window.cvApi = { chain, screen };
                                 replace with a real convexvalue
                                 shim to use live data
