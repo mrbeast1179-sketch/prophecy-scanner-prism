@@ -35,9 +35,13 @@ flag) for live data instead.
 
 Tagged releases live at
 [github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
-The current pin, **v0.2.0** (`PRISM` rebrand + dead-code sweep +
-synthetic-data demo bootstrap), is the immutable artifact visitors
-should grab from there.
+The current pin, **v0.3.0**, is the immutable artifact visitors
+should grab from there. v0.3.0 subsumes v0.2.0: drops the
+`'Snapshot'` table column (refresh time now lives in a single
+`Refreshed` KPI cell), lowers `fetchScan`'s `day_volume` floor from
+`>1000` to `>250` so the scanner surfaces 100+ contracts, bumps the
+`cv-bootstrap.js` demo CSV so all 120 rows pass the new floor, and
+sweeps the now-dead `fetchedAt` mapping out of `loadScan()`.
 
 ## Run locally
 
