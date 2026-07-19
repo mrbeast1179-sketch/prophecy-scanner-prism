@@ -23,16 +23,20 @@ cd prophecy-scanner-prism
 open index.html
 ```
 
-The HTML expects `window.cvApi.{chain, screen}` to be present — provided
-by a host-loaded `cv-bootstrap.js`, kept out of this repo by design.
+A `cv-bootstrap.js` ships at the repo root and exposes
+`window.cvApi = { chain, screen }` with **synthetic** data so the demo
+renders populated on a fresh clone — no token, no network calls. To
+swap to live convexvalue data, replace `cv-bootstrap.js` with one that
+POSTs to `https://tap.convexvalue.com/api/data/{chains, screen}` and
+sets the same `window.cvApi` shape.
 
 ## convexvalue API key
 
 PRISM hits `https://tap.convexvalue.com/api/data/{chains, screen}` with
 a bearer token in the `Authorization` header. Plans and pricing live at
 <https://cvforge.convexvalue.com/pricing>. **Do not commit a bearer
-token to this repo.** The bootstrap is responsible for injecting it at
-runtime.
+token to this repo.** The bootstrap is responsible for injecting it
+at runtime (the demo bootstrap in this repo does not contain a token).
 
 ## Lenses
 
@@ -44,9 +48,14 @@ runtime.
 ## Layout
 
 ```
-index.html       The app — JS, CSS, favicon all inline
-CHANGELOG.md     Release notes
-.nojekyll        GitHub Pages bypasses Jekyll processing
+index.html                      The app — JS, CSS, favicon all inline
+cv-bootstrap.js                 Synthetic-data bootstrap exposing
+                                window.cvApi = { chain, screen };
+                                replace with a real convexvalue
+                                shim to use live data
+CHANGELOG.md                    Release notes
+.github/workflows/pages-smoke.yml  Asserts Pages-byte-faithful-to-main
+.nojekyll                       GitHub Pages bypasses Jekyll processing
 ```
 
 ## License
