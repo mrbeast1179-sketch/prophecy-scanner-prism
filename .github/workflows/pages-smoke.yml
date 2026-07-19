@@ -42,7 +42,15 @@ jobs:
           for i in 1 2 3 4 5 6 7 8 9 10; do
             HTTP=$(curl -sS --max-time 20 -L -o "$SERVED_PATH" -w '%{http_code}' "$PAGES_URL")
             if [ -z "$HTTP" ] || [ "$HTTP" != "200" ]; then
-              echo "::warning::attempt $i  curl HTTP='$HTTP' (expected 200), retrying in 8s"
+              # First 2 retries surface as Actions annotations so the
+              # operator sees them in the run summary; remaining retries
+              # are operator-log-only (plain echo) so the run summary
+              # stays clean when Pages takes the full ~80s to settle.
+              if [ "$i" -le 2 ]; then
+                echo "::warning::attempt $i  curl HTTP='$HTTP' (expected 200), retrying in 8s"
+              else
+                echo "attempt $i  curl HTTP='$HTTP' (expected 200), retrying in 8s  [operator-log]"
+              fi
               sleep 8
               continue
             fi
@@ -54,7 +62,11 @@ jobs:
               echo "OK on attempt $i \u2014 local and served index.html are byte-identical."
               exit 0
             fi
-            echo "::warning::attempt $i  SHA mismatch (CDN likely still propagating), retrying in 8s"
+            if [ "$i" -le 2 ]; then
+              echo "::warning::attempt $i  SHA mismatch (CDN likely still propagating), retrying in 8s"
+            else
+              echo "attempt $i  SHA mismatch (CDN still propagating, settling continues), retrying in 8s  [operator-log]"
+            fi
             sleep 8
           done
           # All retries exhausted -> surface the served body as an
