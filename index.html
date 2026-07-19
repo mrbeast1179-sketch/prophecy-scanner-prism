@@ -1016,7 +1016,7 @@ shell();
 tick();
 setInterval(tick,5000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
-})();// ---- Diagnostic overlay (?debug=1) --------------------------------------
+// ---- Diagnostic overlay (?debug=1) --------------------------------------
 // Pure dev tool. Renders a fixed bottom-right panel that snapshots the
 // fetcher layer and `st` shape once per second so an operator can see
 // cache hit-rates, in-flight requests, rate-limit state, and the
@@ -1140,6 +1140,7 @@ var dbgTickTimer=null;
 // ---- Bootstrap -----------------------------------------------------------
 shell(); populateExpiry(); loadData(); if(st.tab==='flow'||st.tab==='heat') tick();
 startDebugPanel();
+})();
   </script>
 </body>
 </html>
