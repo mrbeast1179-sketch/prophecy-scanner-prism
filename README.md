@@ -41,14 +41,24 @@ canonical UX.
 ## Releases
 
 Tagged releases live at
-[github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
-The current pin, **v0.3.0**, is the immutable artifact visitors
-should grab from there. v0.3.0 subsumes v0.2.0: drops the
-`'Snapshot'` table column (refresh time now lives in a single
-`Refreshed` KPI cell), lowers `fetchScan`'s `day_volume` floor from
-`>1000` to `>250` so the scanner surfaces 100+ contracts, bumps the
-`cv-bootstrap.js` demo CSV so all 120 rows pass the new floor, and
-sweeps the now-dead `fetchedAt` mapping out of `loadScan()`.
+[github.com/mrbeast1179-sketch/prohecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
+The current pin is **v0.4.0** ([release page](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases/tag/v0.4.0))
+— the immutable artifact visitors should grab from there.
+v0.4.0 subsumes v0.3.0: ships the `?debug=1` diagnostic overlay
+(chain cache hit-rate per ticker, scan cache status, in-flight
+requests, request-per-hour counter, rate-limit state, current `st`
+shape — refresh every 1 s, opt-in via the URL flag), lands the
+corrective IIFE-close fix on top so the overlay helpers resolve
+IIFE-scoped state correctly, and lowers the `pages-smoke` workflow's
+Actions-UI noise by demoting post-attempt-2 mismatch warnings to
+plain echo while keeping the SHA-match gate strict.
+
+v0.3.0 subsumes v0.2.0: drops the `'Snapshot'` table column (refresh
+time now lives in a single `Refreshed` KPI cell), lowers `fetchScan`'s
+`day_volume` floor from `>1000` to `>250` so the scanner surfaces 100+
+contracts, bumps the `cv-bootstrap.js` demo CSV so all 120 rows pass
+the new floor, and sweeps the now-dead `fetchedAt` mapping out of
+`loadScan()`.
 
 ## Run locally
 
