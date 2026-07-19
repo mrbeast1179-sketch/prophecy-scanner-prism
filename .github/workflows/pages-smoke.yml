@@ -1,0 +1,58 @@
+name: pages-smoke
+
+# Triggers on every push to main and is manually runnable from the Actions
+# tab. Cheap (no Node setup), finishes in well under a minute. Locks the
+# invariant that GitHub Pages is serving the same bytes we just committed.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      PAGES_URL: https://mrbeast1179-sketch.github.io/prophecy-scanner-prism/
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Compute local SHA-256
+        id: local_sha
+        run: |
+          LOCAL_SHA=$(shasum -a 256 index.html | awk '{print $1}')
+          LOCAL_BYTES=$(wc -c < index.html)
+          echo "local_sha=$LOCAL_SHA"
+          echo "local_sha=$LOCAL_SHA" >> "$GITHUB_OUTPUT"
+          echo "local_bytes=$LOCAL_BYTES -> $LOCAL_SHA"
+
+      - name: Fetch Pages copy (follow redirects)
+        id: fetch_served
+        run: |
+          set -e
+          HTTP=$(curl -sS --max-time 20 -L -o served.html -w '%{http_code}' "$PAGES_URL" || true)
+          echo "served_http=$HTTP  url=$PAGES_URL"
+          if [ -z "$HTTP" ] || [ "$HTTP" != "200" ]; then
+            echo "::error::Pages URL returned HTTP '$HTTP' (expected 200)."
+            echo "::error::Hint: Pages build may not have finished yet; re-run in ~1 minute."
+            exit 1
+          fi
+          SERVED_SHA=$(shasum -a 256 served.html | awk '{print $1}')
+          SERVED_BYTES=$(wc -c < served.html)
+          echo "served_sha=$SERVED_SHA"
+          echo "served_sha=$SERVED_SHA" >> "$GITHUB_OUTPUT"
+          echo "served_bytes=$SERVED_BYTES -> $SERVED_SHA"
+
+      - name: Compare local vs served SHA-256
+        run: |
+          LOCAL="${{ steps.local_sha.outputs.local_sha }}"
+          SERVED="${{ steps.fetch_served.outputs.served_sha }}"
+          echo "local_index_sha256  = $LOCAL"
+          echo "served_index_sha256 = $SERVED"
+          if [ "$LOCAL" != "$SERVED" ]; then
+            echo "::error::Pages-served index.html SHAs do not match local."
+            echo "::error::Likely causes: (a) Pages CDN publish lag (wait ~30s and re-run); (b) the deployed commit differs from HEAD on main; (c) a CDN-side encoding/redirect altered the body."
+            exit 1
+          fi
+          echo "OK \u2014 local and served index.html are byte-identical."
