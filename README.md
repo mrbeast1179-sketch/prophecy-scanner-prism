@@ -4,8 +4,10 @@ A single-file option-flow scanner + dealer-gamma heatmap on top of the
 [convexvalue](https://convexvalue.com) live option-chain API. Two lenses
 on the same chain:
 
-- **LiveTape** — cross-symbol unusual-flow scanner with Snapshot
-  and Spot columns and a per-ticker drill-down chart.
+- **LiveTape** — cross-symbol unusual-flow scanner with a sortable
+  vol/OI score, per-ticker drill-down chart, and stat-bar KPIs
+  (Contracts, Notional Σ, Call/Put Vol, Unusual ≥2×, Top Name,
+  Refreshed).
 - **GammaMap** — dealer-gamma exposure surface (strike × expiry), with
   a top-strike sidebar, IV-skew KPI, and per-expiry contribution bars.
 
@@ -19,6 +21,15 @@ To try the demo with synthetic CSV-backed data, append `?demo=1` to
 the URL: [mrbeast1179-sketch.github.io/prophecy-scanner-prism/?demo=1](https://mrbeast1179-sketch.github.io/prophecy-scanner-prism/?demo=1).
 Drop your own `window.cvApi` shim and visit the canonical URL (no
 flag) for live data instead.
+
+> **Demo caveat.** The CSV rows in the demo bootstrap are tuned so
+> ~120 contracts pass the `day_volume > 250` filter and surface in a
+> clean load — that's not a literal mirror of convexvalue's live
+> screen-feed percentile (deep-OTM dust rows are bumped up so the
+> scan table feels "alive" on a fresh open). Real upstream data
+> behaves identically for KPI math, hammers, and chart overlays; the
+> synthetic distribution is intentionally skewed toward breadth so
+> demo users see the full active-flow band at a glance.
 
 ## Releases
 
@@ -56,7 +67,7 @@ at runtime (the demo bootstrap in this repo does not contain a token).
 
 | Lens | What it shows |
 |---|---|
-| LiveTape | Cross-symbol scan (Snapshot refresh time, Spot/Entry, vol/OI, score, flow-type badge) plus a per-ticker OI/gamma drill-down chart and Put/Call-OI KPIs. |
+| LiveTape | Cross-symbol scan (Refreshed timestamp in KPI bar; Spot/Entry, vol/OI, score, flow-type badge per row) plus a per-ticker OI/gamma drill-down chart and Put/Call-OI KPIs. |
 | GammaMap | Dealer-gamma heatmap with IV Skew (call-IV@+5% minus put-IV@−5%), Gamma Flip, Max Pain, Net GEX / 1%, Regime; plus a long-gamma vs short-gamma top-strikes sidebar and a per-expiry contribution bar. |
 
 ## Layout

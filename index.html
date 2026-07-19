@@ -468,15 +468,11 @@ function scoreGrade(s){ return s>=80?'crit':s>=65?'high':s>=50?'elev':'norm'; }
 async function loadScan(){
   try{
     var rows=await fetchScan();
-    // HH:MM:SS local stamp of THIS scan fetch — every row in a single
-    // pass carries the same value (the screen feed refreshes atomically),
-    // so a row's Time col tells you exactly how fresh its vol/OI are.
-    var fetchedAt=new Date(scanCache.at||Date.now()).toLocaleTimeString();
     st.scan=rows.map(function(r){
       var vol=num(r[5]), oi=num(r[6]), strike=num(r[3]);
       var o={under:r[0],contract:r[1],type:r[2],strike:strike,exp:r[4],vol:vol,oi:oi,
              iv:r[7],delta:r[8],spot:num(r[9]),volOI:oi>0?vol/oi:(vol>0?99:0),
-             notional:vol*100*strike,fetchedAt:fetchedAt};
+             notional:vol*100*strike};
       o.dte=bizDTE(r[4]); o.score=scanScore(o); o.ftype=scanType(o);
       return o;
     });
