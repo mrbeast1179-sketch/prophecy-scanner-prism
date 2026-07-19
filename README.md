@@ -31,6 +31,13 @@ flag) for live data instead.
 > synthetic distribution is intentionally skewed toward breadth so
 > demo users see the full active-flow band at a glance.
 
+For live debugging, append `?debug=1` (optionally along with
+`?demo=1`) to surface a bottom-right diagnostic overlay showing
+chain cache hit-rate per ticker, scan cache status, in-flight
+requests, request-per-hour counter, rate-limit state, and the full
+current `st` shape (1 s refresh). Dev tool — omitted from the
+canonical UX.
+
 ## Releases
 
 Tagged releases live at

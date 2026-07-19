@@ -107,6 +107,22 @@
     .drill{flex-shrink:0;height:290px;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
     .drillh{font-size:11px;font-weight:700;color:#cbd3df;padding:0 0 4px}
     .drillh small{color:#7a8599;font-weight:500}
+    /* Diagnostic overlay (?debug=1). Fixed bottom-right; doesn't disturb
+       the scroll-fixed .ct pane. Cursor: default so it doesn't steal
+       focus from table sort / chip clicks underneath. */
+    .dbg{position:fixed;right:10px;bottom:32px;width:300px;max-height:60vh;overflow:auto;background:rgba(13,15,20,.95);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;font:10.5px ui-monospace,SF Mono,Menlo,monospace;color:#cbd3df;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.4);cursor:default}
+    .dbg b{color:#e6e8ee;font-weight:600}
+    .dbg .dbg-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .dbg .dbg-h button{background:none;border:1px solid rgba(255,255,255,.12);color:#7a8599;padding:2px 7px;border-radius:4px;font:9px ui-monospace,monospace;cursor:pointer}
+    .dbg .dbg-h button:hover{color:#e6e8ee;border-color:#3b82f6}
+    .dbg .dbg-section{padding:6px 0;border-top:1px solid rgba(255,255,255,.05)}
+    .dbg .dbg-section:first-of-type{border-top:none;padding-top:0}
+    .dbg .dbg-row{display:flex;justify-content:space-between;gap:8px;padding:1px 0;font-variant-numeric:tabular-nums}
+    .dbg .dbg-row .k{color:#7a8599;flex-shrink:0}
+    .dbg .dbg-row .v{color:#e6e8ee;text-align:right}
+    .dbg .dbg-row .v.g{color:#34d399}.dbg .dbg-row .v.r{color:#f43f5e}.dbg .dbg-row .v.y{color:#fbbf24}
+    .dbg .dbg-empty{color:#5a6473;font-style:italic}
+    .dbg .dbg-keys{color:#7a8599;font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding-bottom:2px}
   </style>
 </head>
 <body>
@@ -267,11 +283,25 @@ var inflight={};                // key → promise; concurrent callers share one
 var fails={};                   // key → {until, msg, n}; failure backoff so errors can't retry-storm
 var rlUntil=0;                  // timestamp; > now means rate-limited
 var reqLog=[];                  // request timestamps for the req/hr readout
+// Per-ticker chain cache stats + scan cache stats. The ?debug=1 overlay
+// reads these to populate its hit-rate readout; nothing else uses them.
+// hit  = served from chainCache (no upstream call)
+// miss = issued an upstream request (regardless of outcome)
+var chainStats={};              // tk → {hits:0, misses:0, lastAt:0}
+var scanStats={hits:0,misses:0,lastAt:0};
+function statHitChain(tk){var s=chainStats[tk]||(chainStats[tk]={hits:0,misses:0,lastAt:0}); s.hits++;}
+function statMissChain(tk){var s=chainStats[tk]||(chainStats[tk]={hits:0,misses:0,lastAt:0}); s.misses++; s.lastAt=Date.now();}
+function statHitScan(){scanStats.hits++;}
+function statMissScan(){scanStats.misses++; scanStats.lastAt=Date.now();}
 
 function reqPerHr(){var now=Date.now(); while(reqLog.length&&now-reqLog[0]>3600000) reqLog.shift(); return reqLog.length;}
 function noteReq(){reqLog.push(Date.now()); reqPerHr();}
 function isRateLimited(e){var m=((e&&e.message)||String(e)).toLowerCase(); return m.indexOf('429')>=0||m.indexOf('limit reached')>=0;}
 function rlText(){return 'Hourly API limit hit — polling paused, retrying at '+new Date(rlUntil).toLocaleTimeString()+' · showing cached data';}
+// ?debug=1 in the URL toggles the in-page diagnostic overlay. Same
+// gating style as cv-bootstrap.js's isDemo(): regex over location.search
+// with [?&] prefix + word boundary so ?demo=1x doesn't accidentally match.
+function isDebug(){ return /[?&]debug=1\b/.test(location.search); }
 // Failure backoff: without this, a fast-failing request (5xx, network blip)
 // would be re-issued by every 5s tick — a worse storm than the one this
 // fetch layer exists to prevent. Consecutive failures stretch the pause.
@@ -280,13 +310,13 @@ function failBlocked(key){var f=fails[key]; return (f&&Date.now()<f.until)?f:nul
 
 function fetchChain(tk){
   var c=chainCache[tk], now=Date.now();
-  if(c&&now-c.at<CHAIN_TTL) return Promise.resolve(c.data);
+  if(c&&now-c.at<CHAIN_TTL){ statHitChain(tk); return Promise.resolve(c.data); }
   if(now<rlUntil) return c?Promise.resolve(c.data):Promise.reject(new Error(rlText()));  // stale beats nothing
   var key='chain:'+tk;
   var f=failBlocked(key);
   if(f) return c?Promise.resolve(c.data):Promise.reject(new Error(f.msg));
   if(inflight[key]) return inflight[key];
-  noteReq();
+  statMissChain(tk); noteReq();
   inflight[key]=window.cvApi.chain(tk,FIELDS).then(function(d){
     delete inflight[key]; delete fails[key]; chainCache[tk]={data:d,at:Date.now()}; return d;
   },function(e){
@@ -296,12 +326,12 @@ function fetchChain(tk){
 }
 function fetchScan(){
   var now=Date.now();
-  if(scanCache.rows&&now-scanCache.at<SCAN_TTL) return Promise.resolve(scanCache.rows);
+  if(scanCache.rows&&now-scanCache.at<SCAN_TTL){ statHitScan(); return Promise.resolve(scanCache.rows); }
   if(now<rlUntil) return scanCache.rows?Promise.resolve(scanCache.rows):Promise.reject(new Error(rlText()));
   var f=failBlocked('scan');
   if(f) return scanCache.rows?Promise.resolve(scanCache.rows):Promise.reject(new Error(f.msg));
   if(inflight.scan) return inflight.scan;
-  noteReq();
+  statMissScan(); noteReq();
   inflight.scan=window.cvApi.screen({
     columns:['underlying_ticker','ticker','contract_type','strike_price','expiration_date','day_volume','open_interest','implied_volatility','delta','underlying_price'],
     filters:[{field:'day_volume',op:'gt',value:250}],
@@ -986,7 +1016,130 @@ shell();
 tick();
 setInterval(tick,5000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
-})();
-</script>
+})();// ---- Diagnostic overlay (?debug=1) --------------------------------------
+// Pure dev tool. Renders a fixed bottom-right panel that snapshots the
+// fetcher layer and `st` shape once per second so an operator can see
+// cache hit-rates, in-flight requests, rate-limit state, and the
+// current app state at a glance. When the flag is OFF (the canonical
+// URL or ?demo=1 alone) the file is identical from a UX perspective.
+function snapshotDebugState(){
+  return {
+    chainCache:chainCache, chainStats:chainStats,
+    scanCache:{rows_len:scanCache.rows?scanCache.rows.length:0, at:scanCache.at},
+    scanStats:scanStats,
+    inflightKeys:Object.keys(inflight), fails:fails,
+    rlUntil:rlUntil, rlUntilStr:rlUntil?new Date(rlUntil).toLocaleTimeString():null,
+    rlActive:Date.now()<rlUntil, rph:reqPerHr(),
+    st:{tk:st.tk,tab:st.tab,spot:st.spot,chain:!!st.chain,chainTk:st.chainTk,ld:st.ld,er:st.er,last:st.last,
+        flowType:st.flowType,flowMinOI:st.flowMinOI,heatMode:st.heatMode,
+        scanType:st.scanType,scanMinVol:st.scanMinVol,scanMinScore:st.scanMinScore,scanQ:st.scanQ,
+        scan_length:st.scan.length,scanAt:st.scanAt,scanSort:st.scanSort}
+  };
+}
+function renderDebugPanel(){
+  var el=document.getElementById('dbg'); if(!el) return;
+  var now=Date.now();
+  var inflightKeys=Object.keys(inflight);
+  var failKeys=Object.keys(fails);
+
+  // chain: per-ticker hit-rate
+  var tkRows=T.map(function(tk){
+    var s=chainStats[tk]||{hits:0,misses:0};
+    var c=chainCache[tk];
+    var total=s.hits+s.misses;
+    var pct=total?Math.round(s.hits*100/total)+'%':'—';
+    var klass=total?(s.hits*100/total>=70?'g':(s.hits*100/total>=40?'y':'r')):'';
+    var age=c?Math.round((now-c.at)/1000)+'s':'—';
+    var status=c?(c.data&&c.data.chain?'cached':'cached-empty'):'no-data';
+    return '<div class="dbg-row"><span class="k">'+tk+'</span><span class="v '+klass+'">'+s.hits+'h/'+s.misses+'m · '+pct+(c?' · '+age+' old':'')+'</span></div>';
+  }).join('');
+
+  // scan
+  var sTotal=scanStats.hits+scanStats.misses;
+  var sPct=sTotal?Math.round(scanStats.hits*100/sTotal)+'%':'—';
+  var sKlass=sTotal?(scanStats.hits*100/sTotal>=70?'g':'r'):'';
+  var sAge=scanCache.at?Math.round((now-scanCache.at)/1000)+'s':'—';
+
+  // in-flight
+  var inflightBlock = inflightKeys.length
+    ? inflightKeys.map(function(k){return '<div class="dbg-row"><span class="k">↻ '+esc(k)+'</span><span class="v y">pending</span></div>';}).join('')
+    : '<div class="dbg-empty">(none)</div>';
+
+  // fails
+  var failBlock = failKeys.length
+    ? failKeys.map(function(k){var f=fails[k]; var rem=Math.max(0,Math.round((f.until-now)/1000)); return '<div class="dbg-row"><span class="k">fail '+esc(k)+'</span><span class="v r">×'+f.n+' · '+(rem>0?rem+'s left':'expired')+'</span></div>';}).join('')
+    : '<div class="dbg-empty">(none)</div>';
+
+  // rate-limit
+  var rph=reqPerHr();
+  var rphColor=rph>=40?'r':(rph>=20?'y':'g');
+  var rlActive=now<rlUntil;
+  var rlLine = rlActive
+    ? '<div class="dbg-row"><span class="k">rate-limit</span><span class="v r">ACTIVE · resume in '+Math.round((rlUntil-now)/1000)+'s</span></div>'
+    : '<div class="dbg-row"><span class="k">rate-limit</span><span class="v g">clear</span></div>';
+
+  // st shape
+  var stLine=
+    row('tk',esc(st.tk))+
+    row('tab',esc(st.tab))+
+    row('spot',st.spot?st.spot.toFixed(2):'—')+
+    row('chain',st.chain?'loaded ('+esc(st.chainTk)+')':'—')+
+    row('ld',st.ld?'true':'false',st.ld?'y':'')+
+    row('er',st.er?esc(String(st.er).slice(0,42)):'\u2014',st.er?'r':'')+
+    row('last',esc(st.last||'—'))+
+    row('flowType',esc(st.flowType))+
+    row('flowMinOI',st.flowMinOI)+
+    row('heatMode',esc(st.heatMode))+
+    row('scanType',esc(st.scanType))+
+    row('scanMinVol',st.scanMinVol)+
+    row('scanMinScore',st.scanMinScore)+
+    row('scanQ',esc(st.scanQ||''))+
+    row('scan.len',st.scan.length)+
+    row('scanAt',esc(st.scanAt||'—'))+
+    row('sort',esc(st.scanSort.key+' '+st.scanSort.dir));
+
+  el.innerHTML=''+
+    '<div class="dbg-h"><b>PRISM DEBUG</b><button id="dbgX" title="reload without ?debug=1">close (×)</button></div>'+
+    '<div class="dbg-section"><div class="dbg-keys">chain cache · per ticker</div>'+tkRows+'</div>'+
+    '<div class="dbg-section"><div class="dbg-keys">scan cache</div>'+
+      '<div class="dbg-row"><span class="k">scan</span><span class="v '+sKlass+'">'+scanStats.hits+'h/'+scanStats.misses+'m · '+sPct+' · '+sAge+' old (TTL '+(SCAN_TTL/1000)+'s)</span></div></div>'+
+    '<div class="dbg-section"><div class="dbg-keys">requests</div>'+
+      '<div class="dbg-row"><span class="k">reqPerHr</span><span class="v '+rphColor+'">'+rph+' / 60min</span></div>'+rlLine+'</div>'+
+    '<div class="dbg-section"><div class="dbg-keys">in-flight</div>'+inflightBlock+'</div>'+
+    '<div class="dbg-section"><div class="dbg-keys">fails</div>'+failBlock+'</div>'+
+    '<div class="dbg-section"><div class="dbg-keys">st shape</div>'+stLine+'</div>';
+
+  // Close button strips ?debug=1 from URL and reloads.
+  var xb=document.getElementById('dbgX');
+  if(xb) xb.onclick=function(){
+    var qs=location.search.replace(/[?&]debug=1\b/,'').replace(/^[?&]/,'');
+    location.search=qs?'?'+qs:'';
+  };
+}
+function row(k,v,cls){return '<div class="dbg-row"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';}
+
+function startDebugPanel(){
+  if(!isDebug()) return;
+  if(document.getElementById('dbg')) return;     // idempotent
+  var panel=document.createElement('div');
+  panel.className='dbg'; panel.id='dbg';
+  document.body.appendChild(panel);
+  var firstTick=true;
+  function tick(){
+    renderDebugPanel();
+    if(firstTick && window.console && console.log){
+      console.log('prism-debug snapshot  (1s tick thereafter, no further console output):', snapshotDebugState());
+    }
+    firstTick=false;
+  }
+  tick();
+  dbgTickTimer=setInterval(tick,1000);
+}
+var dbgTickTimer=null;
+
+// ---- Bootstrap -----------------------------------------------------------
+shell(); populateExpiry(); loadData(); if(st.tab==='flow'||st.tab==='heat') tick();
+startDebugPanel();
+  </script>
 </body>
 </html>
