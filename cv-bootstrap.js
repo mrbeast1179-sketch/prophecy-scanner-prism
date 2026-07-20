@@ -38,6 +38,17 @@
   }
   if (!isDemo()) return;
 
+  // Self-test flag: append `&ratelimit=1` to any `?demo=1` URL and PRISM's
+  // fetch layer will see a synthetic hourly 429 from the demo bootstrap on
+  // every call — the amber `RATE-LIMIT` pill flips, the status bar shows
+  // the `Hourly API limit hit - polling paused` text, and the `?debug=1`
+  // overlay's rate-limit readout reads "tripped" exactly as it does for
+  // a real upstream 429. The synthetic 429 honors the existing `RL_PAUSE`
+  // (10 min) so visitors can watch the badge revert to LIVE naturally.
+  // No-op without `?demo=1`; the gate above returns first.
+  var RATELIMIT = /[?&]ratelimit=1\b/.test(location.search);
+  var RL_MSG = 'Hourly API limit reached for your plan; PRISM self-test';
+
   // \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 CSV mock data \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Long format: one row per (symbol, expiration, strike, side).
   // Columns: SYMBOL,EXP,STRIKE,TYPE,IV,DELTA,GAMMA,THETA,VEGA,BID,ASK,MID,OI,VOL,SPOT
@@ -307,6 +318,7 @@
     chain: function (ticker /*, fields */) {
       return new Promise(function (resolve, reject) {
         setTimeout(function () {
+          if (RATELIMIT) { reject(new Error('429 ' + RL_MSG)); return; }
           try { resolve(buildChain(ticker)); } catch (e) { reject(e); }
         }, delay(40, 110));
       });
@@ -314,10 +326,11 @@
     screen: function (query) {
       return new Promise(function (resolve, reject) {
         setTimeout(function () {
+          if (RATELIMIT) { reject(new Error('429 ' + RL_MSG)); return; }
           try { resolve(buildScreen(query || {})); } catch (e) { reject(e); }
         }, delay(60, 140));
       });
     }
   };
-  window.__cvBootstrap = 'demo';
+  window.__cvBootstrap = RATELIMIT ? 'demo-ratelimit' : 'demo';
 })();

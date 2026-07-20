@@ -32,6 +32,15 @@ from green **LIVE** to amber **RATE-LIMIT** with a hover tooltip showing
 the exact reset time — no debug flag needed. (Errors stay red; rate-limit
 specifically is amber so the two failure modes are visually distinct.)
 
+To exercise the rate-limit handling end-to-end without burning the
+convexvalue hourly budget, append `&ratelimit=1` to any `?demo=1`
+URL: [demo+ratelimit URL](https://mrbeast1179-sketch.github.io/prophecy-scanner-prism/?demo=1&ratelimit=1).
+The toolbar badge flips to amber `RATE-LIMIT` exactly as it does for
+a real upstream 429 — same shape, same hover tooltip, same
+`aria-live="polite"` transition. The synthetic 429 honors PRISM's
+`RL_PAUSE` (10 min) so the badge reverts to `LIVE` naturally without
+you needing to refresh.
+
 > **Demo caveat.** The CSV rows in the demo bootstrap are tuned so
 > ~120 contracts pass the `day_volume > 250` filter and surface in a
 > clean load — that's not a literal mirror of convexvalue's live
