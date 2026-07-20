@@ -54,9 +54,11 @@ you needing to refresh.
 
 Tagged releases live at
 [github.com/mrbeast1179-sketch/prohecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
-The current pin is **v0.5.0** ([release page](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases/tag/v0.5.0))
+The current pin is **v0.6.0** ([release page](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases/tag/v0.6.0))
 — the immutable artifact visitors should grab from there.
 v0.5.0 subsumes v0.4.0: the toolbar `LIVE` badge now flips to amber **`RATE-LIMIT`** (visually distinct from the red **`ERROR`** pill on other upstream failures), with a hover tooltip of the form `Hourly API limit · polling paused · resets at <HH:MM:SS>` so visitors see the gate without opening `?debug=1`. The badge carries `aria-live="polite"` so screen-reader users hear the transition. The `?demo=1` synthetic path is unaffected because `cv-bootstrap.js` never produces a 429 — the badge stays green.
+
+v0.6.0 subsumes v0.5.0: visitors can now exercise the convexvalue rate-limit error path end-to-end without burning the hourly budget. Append `&ratelimit=1` to any `?demo=1` URL and the demo bootstrap throws a synthetic 429 from both `chain()` and `screen()`; the toolbar flips to amber `RATE-LIMIT` exactly as for a real upstream 429, with the same hover tooltip, the same `aria-live="polite"` transition, and the existing `RL_PAUSE` (10 min) cool-down so the badge reverts to `LIVE` naturally. Implementation lives in `cv-bootstrap.js` (~6 lines added; mirrors the existing `isDemo()` gating pattern); the `?demo=1`-only path is unaffected.
 
 v0.4.0 subsumes v0.3.0: ships the `?debug=1` diagnostic overlay
 (chain cache hit-rate per ticker, scan cache status, in-flight
