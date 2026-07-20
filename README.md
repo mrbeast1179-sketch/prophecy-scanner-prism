@@ -19,6 +19,11 @@ No backend. No build step. The whole app is one HTML file.
 
 To try the demo with synthetic CSV-backed data, append `?demo=1` to
 the URL: [mrbeast1179-sketch.github.io/prophecy-scanner-prism/?demo=1](https://mrbeast1179-sketch.github.io/prophecy-scanner-prism/?demo=1).
+For live debugging, append `?debug=1` (combine freely with `?demo=1`)
+to surface a bottom-right diagnostic overlay — chain cache hit-rate
+per ticker, scan cache status, in-flight requests, request-per-hour
+counter, rate-limit state, and the current `st` shape; refresh 1 s.
+Opt-in dev tool, omitted from the canonical UX.
 Drop your own `window.cvApi` shim and visit the canonical URL (no
 flag) for live data instead.
 
@@ -30,13 +35,6 @@ flag) for live data instead.
 > behaves identically for KPI math, hammers, and chart overlays; the
 > synthetic distribution is intentionally skewed toward breadth so
 > demo users see the full active-flow band at a glance.
-
-For live debugging, append `?debug=1` (optionally along with
-`?demo=1`) to surface a bottom-right diagnostic overlay showing
-chain cache hit-rate per ticker, scan cache status, in-flight
-requests, request-per-hour counter, rate-limit state, and the full
-current `st` shape (1 s refresh). Dev tool — omitted from the
-canonical UX.
 
 ## Releases
 
