@@ -45,8 +45,10 @@ specifically is amber so the two failure modes are visually distinct.)
 
 Tagged releases live at
 [github.com/mrbeast1179-sketch/prohecy-scanner-prism/releases](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases).
-The current pin is **v0.4.0** ([release page](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases/tag/v0.4.0))
+The current pin is **v0.5.0** ([release page](https://github.com/mrbeast1179-sketch/prophecy-scanner-prism/releases/tag/v0.5.0))
 — the immutable artifact visitors should grab from there.
+v0.5.0 subsumes v0.4.0: the toolbar `LIVE` badge now flips to amber **`RATE-LIMIT`** (visually distinct from the red **`ERROR`** pill on other upstream failures), with a hover tooltip of the form `Hourly API limit · polling paused · resets at <HH:MM:SS>` so visitors see the gate without opening `?debug=1`. The badge carries `aria-live="polite"` so screen-reader users hear the transition. The `?demo=1` synthetic path is unaffected because `cv-bootstrap.js` never produces a 429 — the badge stays green.
+
 v0.4.0 subsumes v0.3.0: ships the `?debug=1` diagnostic overlay
 (chain cache hit-rate per ticker, scan cache status, in-flight
 requests, request-per-hour counter, rate-limit state, current `st`

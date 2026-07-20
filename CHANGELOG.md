@@ -2,7 +2,7 @@
 
 ## 0.5.0 — toolbar rate-limit pill flips amber with reset-time hint
 
-The toolbar's `LIVE` badge now distinguishes a convexvalue hourly rate-limit (amber `#fbbf24` + hover title `Hourly API limit · polling paused · resets at HH:MM:SS`) from a generic upstream error (red `.bd.off`). The badge carries `aria-live="polite"` so screen-reader users hear the transition. Demo path (`?demo=1`) is unaffected because cv-bootstrap.js never produces a 429 — synthetic stays green.
+Toolbar badge now distinguishes a convexvalue hourly rate-limit from a generic upstream error: **`RATE-LIMIT`** renders in amber (`#fbbf24`), **`ERROR`** stays in red (`.bd.off`). On rate-limit the badge carries a hover title `Hourly API limit · polling paused · resets at HH:MM:SS` and `aria-live="polite"` so screen-reader users hear the transition. The `?demo=1` path is unaffected because `cv-bootstrap.js` never produces a 429 — synthetic stays green.
 
 ## 0.4.0 — diagnostic overlay + hygiene
 
