@@ -27,6 +27,11 @@ Opt-in dev tool, omitted from the canonical UX.
 Drop your own `window.cvApi` shim and visit the canonical URL (no
 flag) for live data instead.
 
+When the convexvalue hourly limit is closed, the toolbar badge flips
+from green **LIVE** to amber **RATE-LIMIT** with a hover tooltip showing
+the exact reset time — no debug flag needed. (Errors stay red; rate-limit
+specifically is amber so the two failure modes are visually distinct.)
+
 > **Demo caveat.** The CSV rows in the demo bootstrap are tuned so
 > ~120 contracts pass the `day_volume > 250` filter and surface in a
 > clean load — that's not a literal mirror of convexvalue's live

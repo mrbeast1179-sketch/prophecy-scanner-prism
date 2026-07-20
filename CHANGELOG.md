@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 — toolbar rate-limit pill flips amber with reset-time hint
+
+The toolbar's `LIVE` badge now distinguishes a convexvalue hourly rate-limit (amber `#fbbf24` + hover title `Hourly API limit · polling paused · resets at HH:MM:SS`) from a generic upstream error (red `.bd.off`). The badge carries `aria-live="polite"` so screen-reader users hear the transition. Demo path (`?demo=1`) is unaffected because cv-bootstrap.js never produces a 429 — synthetic stays green.
+
 ## 0.4.0 — diagnostic overlay + hygiene
 
 - `?debug=1` lands a bottom-right diagnostic overlay: chain cache hit-rate per ticker, scan cache status, in-flight requests, request-per-hour counter, rate-limit state, and the current `st` shape (1 s refresh; opt-in dev tool, omitted from the canonical UX).
